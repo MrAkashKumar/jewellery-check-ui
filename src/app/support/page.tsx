@@ -12,10 +12,11 @@ export default function SupportPage() {
       <div className={styles.supportLayout}>
         <section className={styles.coffeeHero}>
           <Image
-            src="/images/coffee-invitation-v2.png"
+            src="/images/coffee-invitation.jpg"
             alt="A centered cappuccino ready for a conversation"
             fill
             priority
+            quality={72}
             sizes="(max-width: 760px) 100vw, 42vw"
           />
           <div>
