@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="JwellCheck">
+  <rect width="512" height="512" rx="112" fill="#17130f"/>
+  <path d="M108 184 162 112h188l54 72-148 184L108 184Z" fill="#f2e5c3"/>
+  <path d="m108 184 148 184 148-184M108 184h296M162 112l94 256 94-256M162 112l-54 72m242-72 54 72" fill="none" stroke="#17130f" stroke-width="20" stroke-linejoin="round"/>
+  <circle cx="376" cy="370" r="86" fill="#315f46" stroke="#f2e5c3" stroke-width="14"/>
+  <path d="m334 370 28 28 58-66" fill="none" stroke="#fffaf0" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

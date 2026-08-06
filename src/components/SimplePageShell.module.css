@@ -1,0 +1,45 @@
+.page {
+  min-height: 100vh;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 68px;
+  padding: 0 max(18px, calc((100vw - 900px) / 2));
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+.brand > span {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #241d13;
+  background: #f2dfad;
+  border-radius: 12px;
+}
+.brand > span svg:last-child {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  color: #356c4e;
+}
+.main {
+  width: min(980px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 52px) 0 56px;
+}
+@media (max-width: 600px) {
+  .header {
+    min-height: 62px;
+    padding-inline: 12px;
+  }
+}
