@@ -126,9 +126,9 @@
 }
 .pageLayout {
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   align-items: start;
-  gap: 16px;
+  gap: 18px;
 }
 .contentColumn {
   min-width: 0;
@@ -136,18 +136,22 @@
 .itemSidebar {
   position: sticky;
   top: 84px;
+  max-height: calc(100vh - 104px);
   margin-top: 16px;
-  padding: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 18px;
+  padding: 14px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--surface), #fff 1.5%);
+  border: 1px solid var(--line-strong);
+  border-radius: 20px;
   box-shadow: 0 15px 50px rgba(0, 0, 0, 0.08);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
 }
 .sidebarTitle {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 5px 10px;
+  padding: 4px 5px 12px;
   font-size: 0.84rem;
 }
 .sidebarTitle span {
@@ -166,7 +170,7 @@
 }
 .shopDateGroup {
   display: grid;
-  gap: 5px;
+  gap: 7px;
 }
 .shopEntry {
   display: grid;
@@ -176,7 +180,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 34px;
   align-items: center;
-  gap: 3px;
+  gap: 5px;
 }
 .shopDateLabel {
   padding: 2px 7px;
@@ -190,18 +194,27 @@
   display: grid;
   gap: 3px;
   width: 100%;
-  min-height: 58px;
-  padding: 10px;
+  min-height: 60px;
+  padding: 11px 12px;
   text-align: left;
   color: var(--text);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: 13px;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+.itemSidebar nav button:hover {
+  background: color-mix(in srgb, var(--background), #fff 2%);
+  border-color: var(--line);
 }
 .itemSidebar nav button[aria-current="true"] {
   color: #241d13;
-  background: #f2dfad;
+  background: linear-gradient(135deg, #f6e6b8, #ead296);
   border-color: #f2dfad;
+  box-shadow: 0 8px 22px rgba(216, 185, 104, 0.14);
 }
 .itemSidebar nav small {
   overflow: hidden;
@@ -228,8 +241,8 @@
 .sidebarItems {
   display: grid;
   gap: 3px;
-  margin-left: 12px;
-  padding-left: 8px;
+  margin: 2px 0 2px 12px;
+  padding-left: 9px;
   border-left: 1px solid var(--line-strong);
 }
 .sidebarItemRow {
@@ -246,8 +259,8 @@
 }
 .itemSidebar nav .sidebarItemButton[aria-current="true"] {
   color: var(--text);
-  background: var(--background);
-  border-color: var(--line);
+  background: color-mix(in srgb, var(--background), #fff 2%);
+  border-color: var(--line-strong);
   font-weight: 750;
 }
 .itemSidebar nav .itemDeleteButton {
@@ -268,13 +281,18 @@
   justify-content: center;
   gap: 7px;
   width: 100%;
-  min-height: 42px;
-  margin-top: 8px;
+  min-height: 46px;
+  margin-top: 10px;
   color: var(--text);
   background: transparent;
   border: 1px dashed var(--line-strong);
-  border-radius: 11px;
+  border-radius: 13px;
   font-weight: 700;
+}
+.sidebarAdd:hover {
+  color: #241d13;
+  background: #f2dfad;
+  border-color: #f2dfad;
 }
 .mobileItemPicker {
   display: none;
@@ -285,7 +303,7 @@
   margin-top: 16px;
   padding: 22px;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 20px;
   box-shadow: 0 15px 50px rgba(0, 0, 0, 0.08);
 }
@@ -343,6 +361,7 @@
 .formGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 13px;
   margin-top: 18px;
 }
@@ -360,8 +379,9 @@
 .itemGrid label,
 .formGrid label {
   display: grid;
+  align-content: start;
   gap: 6px;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--muted), var(--text) 18%);
   font-size: 0.77rem;
   font-weight: 700;
 }
@@ -375,7 +395,7 @@
   min-height: 48px;
   padding: 0 13px;
   color: var(--text);
-  background: var(--background);
+  background: color-mix(in srgb, var(--background), #fff 1.8%);
   border: 1px solid var(--line-strong);
   border-radius: 12px;
   font: inherit;
@@ -383,13 +403,21 @@
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease,
-    background 150ms ease;
+    background 150ms ease,
+    transform 150ms ease;
+}
+.shopDetails input::placeholder,
+.itemGrid input::placeholder,
+.formGrid input::placeholder,
+.formGrid textarea::placeholder {
+  color: color-mix(in srgb, var(--muted), transparent 18%);
 }
 .formGrid textarea {
   padding-block: 11px;
   resize: vertical;
 }
 .fieldHint {
+  min-height: 1.4em;
   color: #6fa184;
   font-size: 0.72rem;
   font-weight: 650;
@@ -412,6 +440,7 @@
 .formGrid input:hover,
 .formGrid select:hover,
 .formGrid textarea:hover {
+  background: color-mix(in srgb, var(--background), #fff 3%);
   border-color: color-mix(in srgb, #b59858, var(--line-strong) 45%);
 }
 .searchSelect {
@@ -510,10 +539,11 @@
 }
 .quoteForm {
   align-self: start;
-  padding: 15px;
-  background: var(--background);
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  padding: 17px;
+  background: color-mix(in srgb, var(--surface), #fff 1.5%);
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
 }
 .quoteForm .formGrid {
   margin-top: 0;
@@ -529,8 +559,8 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-height: 36px;
-  padding: 0 11px;
+  min-height: 38px;
+  padding: 0 12px;
   color: var(--muted);
   background: transparent;
   border: 1px solid var(--line-strong);
@@ -548,6 +578,7 @@
   color: #241d13;
   background: #f2dfad;
   border-color: #f2dfad;
+  box-shadow: 0 6px 18px rgba(216, 185, 104, 0.12);
 }
 .moreOptions {
   margin-top: 0;
@@ -621,10 +652,11 @@
   min-width: 0;
 }
 .priceCard {
-  padding: 18px;
+  padding: 20px;
   color: #f9f5eb;
   background: linear-gradient(145deg, #315c46, #244333);
-  border-radius: 16px;
+  border: 1px solid rgba(181, 216, 193, 0.16);
+  border-radius: 18px;
   box-shadow: 0 18px 40px rgba(18, 48, 33, 0.2);
 }
 .priceCard > span {
@@ -851,21 +883,169 @@
   }
   .mobileItemPicker {
     display: grid;
-    gap: 6px;
-    margin-bottom: 2px;
-    color: var(--muted);
-    font-size: 0.77rem;
-    font-weight: 700;
+    gap: 7px;
+    margin-bottom: 4px;
+    padding: 10px;
+    background: color-mix(in srgb, var(--surface), #fff 1.5%);
+    border: 1px solid var(--line-strong);
+    border-radius: 18px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
   }
-  .mobileItemPicker select {
+  .mobileShopHeading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .mobileShopHeading strong {
+    font-size: 0.8rem;
+  }
+  .mobileShopHeading span {
+    color: var(--muted);
+    font-size: 0.7rem;
+  }
+  .mobileShopMenu {
+    position: relative;
+  }
+  .mobileShopMenu > summary {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 7px 10px;
+    color: #241d13;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f6e6b8, #ead296);
+    border: 1px solid #f2dfad;
+    border-radius: 14px;
+    list-style: none;
+    box-shadow: 0 7px 20px rgba(216, 185, 104, 0.12);
+  }
+  .mobileShopMenu > summary::-webkit-details-marker {
+    display: none;
+  }
+  .mobileShopMenu > summary > svg {
+    transition: transform 150ms ease;
+  }
+  .mobileShopMenu[open] > summary > svg {
+    transform: rotate(180deg);
+  }
+  .mobileShopMenu > summary .mobileShopIcon {
+    color: #f2dfad;
+    background: #315c46;
+    border-color: #315c46;
+  }
+  .mobileShopMenu > summary .mobileShopText small {
+    color: #6f6043;
+  }
+  .mobileShopList {
+    display: grid;
+    gap: 8px;
+    max-height: min(260px, 38vh);
+    margin-top: 6px;
+    padding: 7px;
+    overflow-y: auto;
+    background: color-mix(in srgb, var(--background), #fff 1%);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .mobileShopGroup {
+    display: grid;
+    gap: 4px;
+  }
+  .mobileShopGroup > span {
+    padding: 1px 6px;
+    color: var(--muted);
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+  .mobileShopRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px;
+    align-items: center;
+    gap: 6px;
+  }
+  .mobileShopList .mobileShopSelect {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
     width: 100%;
     min-height: 48px;
-    padding: 0 12px;
+    padding: 6px 9px;
+    text-align: left;
     color: var(--text);
-    background: var(--surface);
+    background: color-mix(in srgb, var(--background), #fff 1.5%);
     border: 1px solid var(--line-strong);
-    border-radius: 13px;
-    font: inherit;
+    border-radius: 12px;
+    transition:
+      border-color 150ms ease,
+      background 150ms ease,
+      transform 150ms ease;
+  }
+  .mobileShopList .mobileShopSelect:active {
+    transform: scale(0.985);
+  }
+  .mobileShopList .mobileShopSelect[aria-pressed="true"] {
+    color: #241d13;
+    background: linear-gradient(135deg, #f6e6b8, #ead296);
+    border-color: #f2dfad;
+  }
+  .mobileShopDelete {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    color: #d97777;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .mobileShopDelete:active {
+    background: color-mix(in srgb, #d98585, transparent 88%);
+  }
+  .mobileShopIcon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    color: #d8b968;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .mobileShopList .mobileShopSelect[aria-pressed="true"] .mobileShopIcon {
+    color: #f2dfad;
+    background: #315c46;
+    border-color: #315c46;
+  }
+  .mobileShopText {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+  .mobileShopText strong,
+  .mobileShopText small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobileShopText strong {
+    font-size: 0.79rem;
+  }
+  .mobileShopText small {
+    color: var(--muted);
+    font-size: 0.68rem;
+  }
+  .mobileShopList .mobileShopSelect[aria-pressed="true"] .mobileShopText small {
+    color: #6f6043;
   }
   .mobileQuotePicker {
     display: grid;
@@ -893,6 +1073,17 @@
   }
   .itemGrid label:first-child {
     grid-column: 1 / -1;
+  }
+  .shopDetails input,
+  .itemGrid input,
+  .itemGrid select,
+  .formGrid input,
+  .formGrid select,
+  .formGrid textarea {
+    min-height: 52px;
+    padding-inline: 15px;
+    border-radius: 14px;
+    font-size: 1rem;
   }
 }
 
@@ -955,6 +1146,12 @@
   .formGrid {
     grid-template-columns: 1fr;
     gap: 11px;
+  }
+  .shopDetails label,
+  .itemGrid label,
+  .formGrid label {
+    gap: 8px;
+    font-size: 0.8rem;
   }
   .fullField {
     grid-column: auto;

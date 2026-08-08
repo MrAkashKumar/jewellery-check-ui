@@ -118,6 +118,7 @@ export function JwellCheckDashboard() {
   const [selectedItemId, setSelectedItemId] = useState<string>();
   const [message, setMessage] = useState("");
   const [showComparison, setShowComparison] = useState(false);
+  const [mobileShopMenuOpen, setMobileShopMenuOpen] = useState(false);
 
   useEffect(() => {
     seedDatabase().then(() => setReady(true));
@@ -185,7 +186,7 @@ export function JwellCheckDashboard() {
     reset({
       metalRatePerGram:
         quote.metalRatePerGram === 0
-          ? (undefined as unknown as number)
+          ? Number.NaN
           : quote.metalRatePerGram,
       makingChargeType:
         quote.metalRatePerGram === 0
@@ -193,11 +194,11 @@ export function JwellCheckDashboard() {
           : quote.makingChargeType,
       makingChargeValue:
         quote.makingChargeValue === 0
-          ? (undefined as unknown as number)
+          ? Number.NaN
           : quote.makingChargeValue,
       gstPercent:
         quote.gstPercent === 0
-          ? (undefined as unknown as number)
+          ? Number.NaN
           : quote.gstPercent,
       gstNotApplicable: quote.gstNotApplicable ?? false,
       discountType:
@@ -209,7 +210,7 @@ export function JwellCheckDashboard() {
       refundType: quote.refundType,
       refundValue:
         quote.refundValue === 0
-          ? (undefined as unknown as number)
+          ? Number.NaN
           : quote.refundValue,
       refundNotApplicable: quote.refundNotApplicable ?? false,
       notes: quote.notes ?? "",
@@ -534,29 +535,84 @@ export function JwellCheckDashboard() {
           </button>
         </section>
 
-        <label className={styles.mobileItemPicker}>
-          Choose shop
-          <select
-            value={activeShopId}
-            onChange={(event) => {
-              setSelectedShopId(event.target.value);
-              const firstQuote = quotes.find(
-                (entry) => entry.shopId === event.target.value,
-              );
-              setSelectedItemId(firstQuote?.itemId);
-            }}
+        <section className={styles.mobileItemPicker} aria-label="Choose shop">
+          <div className={styles.mobileShopHeading}>
+            <strong>Choose shop</strong>
+            <span>{shops.length} saved</span>
+          </div>
+          <details
+            className={styles.mobileShopMenu}
+            open={mobileShopMenuOpen}
+            onToggle={(event) =>
+              setMobileShopMenuOpen(event.currentTarget.open)
+            }
           >
-            {shopGroups.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.entries.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {shopLabels.get(entry.id)}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+            <summary>
+              <span className={styles.mobileShopIcon}>
+                <Check size={16} />
+              </span>
+              <span className={styles.mobileShopText}>
+                <strong>{shopLabels.get(activeShopId ?? "")}</strong>
+                <small>
+                  {shopQuotes.length}{" "}
+                  {shopQuotes.length === 1 ? "item" : "items"}
+                </small>
+              </span>
+              <ChevronDown size={18} />
+            </summary>
+            <div className={styles.mobileShopList}>
+              {shopGroups.map((group) => (
+                <div className={styles.mobileShopGroup} key={group.label}>
+                  <span>{group.label}</span>
+                  {group.entries.map((entry) => {
+                    const entryQuotes = quotes.filter(
+                      (quoteEntry) => quoteEntry.shopId === entry.id,
+                    );
+                    const count = entryQuotes.length;
+                    const selected = entry.id === activeShopId;
+
+                    return (
+                      <div className={styles.mobileShopRow} key={entry.id}>
+                        <button
+                          className={styles.mobileShopSelect}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => {
+                            setSelectedShopId(entry.id);
+                            setSelectedItemId(entryQuotes[0]?.itemId);
+                            setMobileShopMenuOpen(false);
+                          }}
+                        >
+                          <span className={styles.mobileShopIcon}>
+                            {selected ? (
+                              <Check size={16} />
+                            ) : (
+                              <Gem size={16} />
+                            )}
+                          </span>
+                          <span className={styles.mobileShopText}>
+                            <strong>{shopLabels.get(entry.id)}</strong>
+                            <small>
+                              {count} {count === 1 ? "item" : "items"}
+                            </small>
+                          </span>
+                        </button>
+                        <button
+                          className={styles.mobileShopDelete}
+                          type="button"
+                          aria-label={`Delete ${shopLabels.get(entry.id)}`}
+                          onClick={() => deleteShop(entry.id)}
+                        >
+                          <Trash2 size={17} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </details>
+        </section>
 
         <div className={styles.pageLayout}>
           <aside className={styles.itemSidebar} aria-label="Your shops">
