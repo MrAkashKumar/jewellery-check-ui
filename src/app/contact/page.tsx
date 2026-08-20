@@ -2,18 +2,16 @@ import type { Metadata } from "next";
 import { SimplePageShell } from "@/components/SimplePageShell";
 import { ContactCard } from "@/features/contact/ContactCard";
 import styles from "../info-page.module.css";
+import { UI_COPY } from "@/config/app-constants";
 
-export const metadata: Metadata = { title: "Reach us — JwellCheck" };
+export const metadata: Metadata = { title: UI_COPY.contact.metadataTitle };
 
 export default function ContactPage() {
   return (
     <SimplePageShell>
       <section className={styles.intro}>
-        <h1>Reach us</h1>
-        <p>
-          Questions, community ideas, and thoughtful collaborations are always
-          welcome.
-        </p>
+        <h1>{UI_COPY.contact.title}</h1>
+        <p>{UI_COPY.contact.description}</p>
       </section>
       <ContactCard />
     </SimplePageShell>

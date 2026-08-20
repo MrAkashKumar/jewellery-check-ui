@@ -91,6 +91,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.saveErrorToast {
+  color: #fff0ee;
+  background: color-mix(in srgb, #5a2928, var(--surface) 16%);
+  border-color: rgba(217, 119, 119, 0.55);
+}
+.saveErrorToast > span {
+  color: #ffd8d4;
+  background: rgba(217, 119, 119, 0.18);
+}
+.saveErrorToast small {
+  color: #e7bbb7;
+}
 @keyframes saveToastIn {
   from {
     opacity: 0;
@@ -665,6 +677,7 @@
   padding-inline: 8px;
   white-space: nowrap;
 }
+.gstChoices,
 .refundChoices {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -672,6 +685,7 @@
   flex: 1 1 100%;
   border-radius: 12px;
 }
+.gstChoices button,
 .refundChoices button {
   min-width: 0;
   padding-inline: 7px;
@@ -1490,16 +1504,19 @@
     padding-inline: 5px;
     font-size: 0.67rem;
   }
+  .gstChoices,
   .refundChoices {
     gap: 2px;
     padding: 2px;
   }
+  .gstChoices button,
   .refundChoices button {
     min-height: 34px;
     padding-inline: 3px;
     font-size: clamp(0.61rem, 2.75vw, 0.68rem);
     letter-spacing: -0.01em;
   }
+  .gstChoices button svg,
   .refundChoices button svg {
     width: 12px;
     height: 12px;

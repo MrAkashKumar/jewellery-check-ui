@@ -3,8 +3,9 @@ import Image from "next/image";
 import { SimplePageShell } from "@/components/SimplePageShell";
 import { CoffeeInviteForm } from "@/features/support/CoffeeInviteForm";
 import styles from "../info-page.module.css";
+import { UI_COPY } from "@/config/app-constants";
 
-export const metadata: Metadata = { title: "Buy us a coffee — JwellCheck" };
+export const metadata: Metadata = { title: UI_COPY.support.metadataTitle };
 
 export default function SupportPage() {
   return (
@@ -12,20 +13,17 @@ export default function SupportPage() {
       <div className={styles.supportLayout}>
         <section className={styles.coffeeHero}>
           <Image
-            src="/images/coffee-invitation.jpg"
-            alt="A centered cappuccino ready for a conversation"
+            src={UI_COPY.support.imagePath}
+            alt={UI_COPY.support.imageAlt}
             fill
             priority
             quality={72}
             sizes="(max-width: 760px) 100vw, 42vw"
           />
           <div>
-            <p className={styles.eyebrow}>A kind gesture</p>
-            <h1>Buy us a coffee</h1>
-            <blockquote>
-              “A coffee is a kind gesture—and a lovely way to share a good
-              idea.”
-            </blockquote>
+            <p className={styles.eyebrow}>{UI_COPY.support.eyebrow}</p>
+            <h1>{UI_COPY.support.title}</h1>
+            <blockquote>{UI_COPY.support.quote}</blockquote>
           </div>
         </section>
         <CoffeeInviteForm />

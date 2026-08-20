@@ -1,15 +1,15 @@
 import type { MetadataRoute } from "next";
+import { APP, SEO } from "@/config/app-constants";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "JwellCheck",
-    short_name: "JwellCheck",
-    description:
-      "Compare jewellery quotations with a clear final-price breakdown.",
-    start_url: "/",
+    name: APP.name,
+    short_name: APP.name,
+    description: SEO.manifestDescription,
+    start_url: APP.links.home,
     display: "standalone",
-    background_color: "#f7f4ed",
-    theme_color: "#2b2721",
+    background_color: SEO.theme.light,
+    theme_color: SEO.theme.manifest,
     icons: [{ src: "/icon", sizes: "512x512", type: "image/png" }],
   };
 }

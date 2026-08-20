@@ -1,5 +1,6 @@
 import type { JewelleryItem, Quote, Shop } from "@/domain/models";
 import { db } from "@/infrastructure/database/jwellcheck-db";
+import { PRICING_DEFAULTS } from "@/config/app-constants";
 
 const now = () => new Date().toISOString();
 const id = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
@@ -63,7 +64,7 @@ export async function addItem(): Promise<string> {
     name: "",
     category: "",
     metal: "gold",
-    purity: "22K (916)",
+    purity: PRICING_DEFAULTS.purity,
     weightGrams: 0,
     comparisonGroup: `new-${itemId}`,
     createdAt: timestamp,
@@ -97,7 +98,7 @@ export async function addQuote(
     metalRatePerGram: 0,
     makingChargeType: "none",
     makingChargeValue: 0,
-    gstPercent: 9,
+    gstPercent: PRICING_DEFAULTS.gstPercent,
     gstNotApplicable: false,
     discountType: "none",
     discountValue: 0,

@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
+import { APP } from "@/config/app-constants";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/saved", "/settings"] }],
-    sitemap: "https://jwellcheck.example/sitemap.xml",
+    rules: [{ userAgent: "*", allow: APP.links.home, disallow: ["/saved", "/settings"] }],
+    sitemap: `${APP.baseUrl}/sitemap.xml`,
   };
 }

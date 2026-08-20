@@ -3,19 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Check, ChevronDown, Send } from "lucide-react";
 import styles from "@/app/info-page.module.css";
-
-const types = [
-  "Suggestion",
-  "Improvement",
-  "Design issue",
-  "Incorrect information",
-  "Not useful",
-  "Feature request",
-  "Missing information",
-  "Other",
-];
-
-const feedbackRecipient = "akashkr2929@gmail.com";
+import { APP, FEEDBACK_TYPES, UI_COPY } from "@/config/app-constants";
 
 export function FeedbackForm() {
   const [status, setStatus] = useState("");
@@ -25,7 +13,7 @@ export function FeedbackForm() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedType) {
-      setStatus("Please choose a feedback type.");
+      setStatus(UI_COPY.feedback.chooseTypeError);
       return;
     }
     const form = new FormData(event.currentTarget);
@@ -36,26 +24,26 @@ export function FeedbackForm() {
       message: String(form.get("message") ?? ""),
       createdAt: new Date().toISOString(),
     };
-    const subject = encodeURIComponent(`JwellCheck: ${feedback.type}`);
+    const subject = encodeURIComponent(`${APP.name}: ${feedback.type}`);
     const body = encodeURIComponent(
-      `Hello Akash,\n\nName: ${feedback.name}\nEmail: ${feedback.email}\nFeedback type: ${feedback.type}\n\n${feedback.message}\n\nSent from JwellCheck`,
+      `Hello ${APP.contact.name},\n\n${UI_COPY.feedback.name}: ${feedback.name}\n${UI_COPY.feedback.email}: ${feedback.email}\n${UI_COPY.feedback.type}: ${feedback.type}\n\n${feedback.message}\n\nSent from ${APP.name}`,
     );
-    window.location.href = `mailto:${feedbackRecipient}?subject=${subject}&body=${body}`;
-    setStatus("Opening your email application…");
+    window.location.href = `mailto:${APP.contact.email}?subject=${subject}&body=${body}`;
+    setStatus(UI_COPY.feedback.openingEmail);
   }
 
   return (
     <form className={`${styles.card} ${styles.form}`} onSubmit={submit}>
       <label>
-        Name
+        {UI_COPY.feedback.name}
         <input name="name" autoComplete="name" required />
       </label>
       <label>
-        Email
+        {UI_COPY.feedback.email}
         <input name="email" type="email" autoComplete="email" required />
       </label>
       <fieldset className={`${styles.full} ${styles.feedbackTypeField}`}>
-        <legend>Feedback type</legend>
+        <legend>{UI_COPY.feedback.type}</legend>
         <div
           className={styles.feedbackTypePicker}
           onKeyDown={(event) => {
@@ -75,7 +63,7 @@ export function FeedbackForm() {
               }`}
             >
               {selectedType && <Check size={15} />}
-              <span>{selectedType || "Select feedback type"}</span>
+              <span>{selectedType || UI_COPY.feedback.selectType}</span>
             </span>
             <ChevronDown size={17} />
           </button>
@@ -83,9 +71,9 @@ export function FeedbackForm() {
             <div
               className={styles.feedbackTypeMenu}
               role="listbox"
-              aria-label="Feedback type"
+              aria-label={UI_COPY.feedback.type}
             >
-              {types.map((type) => (
+              {FEEDBACK_TYPES.map((type) => (
                 <button
                   key={type}
                   type="button"
@@ -107,17 +95,17 @@ export function FeedbackForm() {
         <input name="type" type="hidden" value={selectedType} />
       </fieldset>
       <label className={styles.full}>
-        Message
+        {UI_COPY.feedback.message}
         <textarea
           name="message"
           required
-          placeholder="Tell us what happened or what would make JwellCheck better."
+          placeholder={UI_COPY.feedback.messagePlaceholder}
         />
       </label>
       <div className={styles.actions}>
         <span role="status">{status}</span>
         <button className={styles.button} type="submit">
-          <Send size={17} /> Send feedback
+          <Send size={17} /> {UI_COPY.feedback.send}
         </button>
       </div>
     </form>

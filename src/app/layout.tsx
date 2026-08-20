@@ -1,28 +1,22 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import { APP, SEO } from "@/config/app-constants";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://jwellcheck.example"),
+  metadataBase: new URL(APP.baseUrl),
   title: {
-    default: "JwellCheck — Compare Jewellery Prices Clearly",
-    template: "%s · JwellCheck",
+    default: SEO.title,
+    template: SEO.titleTemplate,
   },
-  description:
-    "Compare jewellery prices across shops with transparent metal value, making charge, GST, discount, fee and tourist refund calculations.",
-  applicationName: "JwellCheck",
-  keywords: [
-    "jewellery price comparison",
-    "gold making charge calculator",
-    "Singapore jewellery",
-    "gold price per gram",
-  ],
+  description: SEO.description,
+  applicationName: APP.name,
+  keywords: [...SEO.keywords],
   openGraph: {
-    title: "JwellCheck — Compare with confidence",
-    description:
-      "Save multiple jewellery items, compare shop quotations and understand every charge.",
+    title: SEO.openGraphTitle,
+    description: SEO.openGraphDescription,
     type: "website",
-    siteName: "JwellCheck",
+    siteName: APP.name,
   },
   robots: { index: true, follow: true },
 };
@@ -31,8 +25,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f4ed" },
-    { media: "(prefers-color-scheme: dark)", color: "#171512" },
+    { media: "(prefers-color-scheme: light)", color: SEO.theme.light },
+    { media: "(prefers-color-scheme: dark)", color: SEO.theme.dark },
   ],
 };
 

@@ -3,13 +3,14 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, CheckCircle2, Coffee, Send } from "lucide-react";
 import styles from "@/app/info-page.module.css";
+import { APP, UI_COPY, UI_TIMINGS } from "@/config/app-constants";
 
 export function CoffeeInviteForm() {
   const [showThankYou, setShowThankYou] = useState(false);
 
   useEffect(() => {
     if (!showThankYou) return;
-    const timeout = window.setTimeout(() => setShowThankYou(false), 2000);
+    const timeout = window.setTimeout(() => setShowThankYou(false), UI_TIMINGS.coffeeThankYouMs);
     return () => window.clearTimeout(timeout);
   }, [showThankYou]);
 
@@ -25,24 +26,24 @@ export function CoffeeInviteForm() {
       createdAt: new Date().toISOString(),
     };
 
-    localStorage.setItem("jwellcheck-coffee-invite", JSON.stringify(invite));
+    localStorage.setItem(APP.storageKeys.coffeeInvite, JSON.stringify(invite));
 
     const recipient =
       process.env.NEXT_PUBLIC_COFFEE_INVITE_EMAIL ??
       process.env.NEXT_PUBLIC_FEEDBACK_EMAIL ??
-      "akashkr2929@gmail.com";
+      APP.contact.email;
 
     const subject = encodeURIComponent(
-      `Coffee invitation from ${invite.name} — JwellCheck`,
+      `Coffee invitation from ${invite.name} — ${APP.name}`,
     );
     const body = encodeURIComponent(
-      `Hello Akash,\n\nI would be happy to meet and share an idea over coffee.\n\nName: ${invite.name}\nEmail: ${invite.email}\nSuggested place: ${invite.place}\nIdea or message: ${invite.note || "Let's connect and exchange ideas."}\n\nLooking forward to hearing from you.\n\nBest regards,\n${invite.name}`,
+      `Hello ${APP.contact.name},\n\nI would be happy to meet and share an idea over coffee.\n\nName: ${invite.name}\nEmail: ${invite.email}\nSuggested place: ${invite.place}\nIdea or message: ${invite.note || UI_COPY.support.fallbackIdea}\n\nLooking forward to hearing from you.\n\nBest regards,\n${invite.name}`,
     );
 
     setShowThankYou(true);
     window.setTimeout(() => {
       window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
-    }, 250);
+    }, UI_TIMINGS.mailDraftDelayMs);
 
     formElement.reset();
   }
@@ -54,44 +55,44 @@ export function CoffeeInviteForm() {
           <Coffee size={19} />
         </span>
         <div>
-          <h2>Thank you for offering us a coffee</h2>
-          <p>Send your kind invitation and share an idea with us.</p>
+          <h2>{UI_COPY.support.formTitle}</h2>
+          <p>{UI_COPY.support.formDescription}</p>
         </div>
       </div>
 
       <label>
-        Name
+        {UI_COPY.support.name}
         <input
           name="name"
           autoComplete="name"
-          placeholder="Your name"
+          placeholder={UI_COPY.support.namePlaceholder}
           required
         />
       </label>
       <label>
-        Email
+        {UI_COPY.support.email}
         <input
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="you@example.com"
+          placeholder={UI_COPY.support.emailPlaceholder}
           required
         />
       </label>
       <label className={styles.full}>
-        Place
+        {UI_COPY.support.place}
         <input
           name="place"
-          placeholder="Coffee shop or meeting place"
+          placeholder={UI_COPY.support.placePlaceholder}
           required
         />
       </label>
       <label className={styles.full}>
-        Your idea (optional)
+        {UI_COPY.support.idea}
         <textarea
           className={styles.compactTextarea}
           name="note"
-          placeholder="Tell us what you would like to discuss."
+          placeholder={UI_COPY.support.ideaPlaceholder}
         />
       </label>
 
@@ -99,14 +100,14 @@ export function CoffeeInviteForm() {
         <div className={styles.actionButtons}>
           <a
             className={`${styles.button} ${styles.secondaryButton}`}
-            href="https://calendly.com/mrakashkumar/10min"
+            href={APP.links.calendly}
             target="_blank"
             rel="noopener noreferrer"
           >
-            <CalendarDays size={17} /> Schedule a meeting
+            <CalendarDays size={17} /> {UI_COPY.support.schedule}
           </a>
           <button className={styles.button} type="submit">
-            <Send size={17} /> Send invitation
+            <Send size={17} /> {UI_COPY.support.send}
           </button>
         </div>
       </div>
@@ -122,10 +123,8 @@ export function CoffeeInviteForm() {
               <Coffee size={26} />
               <CheckCircle2 size={18} />
             </span>
-            <strong>Thank you for the invitation!</strong>
-            <p>
-              We appreciate your kind gesture and look forward to connecting.
-            </p>
+            <strong>{UI_COPY.support.thankYouTitle}</strong>
+            <p>{UI_COPY.support.thankYouText}</p>
           </div>
         </div>
       )}

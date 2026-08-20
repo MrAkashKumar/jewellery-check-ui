@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useForm, useWatch } from "react-hook-form";
 import {
+  AlertCircle,
   BadgeCheck,
   BarChart3,
   Check,
@@ -20,6 +21,14 @@ import {
 } from "lucide-react";
 import type { JewelleryItem, Quote } from "@/domain/models";
 import { HeaderLinks } from "@/components/HeaderLinks";
+import {
+  APP,
+  JEWELLERY_CATEGORIES,
+  PRICING_DEFAULTS,
+  PURITY_OPTIONS,
+  UI_COPY,
+  UI_TIMINGS,
+} from "@/config/app-constants";
 import { calculateQuote } from "@/domain/pricing/calculator";
 import { db } from "@/infrastructure/database/jwellcheck-db";
 import {
@@ -33,40 +42,6 @@ import {
   updateShop,
 } from "@/infrastructure/repositories/comparison-repository";
 import styles from "./JwellCheckDashboard.module.css";
-
-const categories = [
-  "Necklace",
-  "Choker",
-  "Rani haar / long necklace",
-  "Mangalsutra",
-  "Chain",
-  "Pendant",
-  "Ring",
-  "Earrings",
-  "Studs",
-  "Jhumka / Jhumki",
-  "Nose pin / Nath",
-  "Maang tikka",
-  "Bracelet",
-  "Bangle / Kangan",
-  "Kada",
-  "Armlet / Bajuband",
-  "Anklet / Payal",
-  "Toe ring / Bichiya",
-  "Waist chain / Kamarband",
-  "Gold bar / biscuit",
-  "Gold coin",
-  "Other",
-];
-
-const purities = [
-  "24K (999/999.9)",
-  "22K (916)",
-  "21K (875)",
-  "18K (750)",
-  "14K (585)",
-  "Custom",
-];
 
 type QuoteForm = Pick<
   Quote,
@@ -84,9 +59,9 @@ type QuoteForm = Pick<
   | "notes"
 >;
 
-const money = new Intl.NumberFormat("en-SG", {
+const money = new Intl.NumberFormat(APP.locale, {
   style: "currency",
-  currency: "SGD",
+  currency: APP.currency,
   minimumFractionDigits: 2,
 });
 
@@ -142,7 +117,7 @@ function shopDateLabel(value: string, today = new Date()) {
   );
   if (daysAgo === 0) return "Today";
   if (daysAgo === 1) return "Yesterday";
-  return new Intl.DateTimeFormat("en-SG", {
+  return new Intl.DateTimeFormat(APP.locale, {
     day: "numeric",
     month: "short",
     year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
@@ -159,6 +134,7 @@ export function JwellCheckDashboard() {
   const [showGstEditor, setShowGstEditor] = useState(false);
   const [showRefundEditor, setShowRefundEditor] = useState(false);
   const [saveConfirmation, setSaveConfirmation] = useState(0);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     seedDatabase().then(() => setReady(true));
@@ -166,9 +142,21 @@ export function JwellCheckDashboard() {
 
   useEffect(() => {
     if (!saveConfirmation) return;
-    const timeout = window.setTimeout(() => setSaveConfirmation(0), 2000);
+    const timeout = window.setTimeout(
+      () => setSaveConfirmation(0),
+      UI_TIMINGS.saveSuccessMs,
+    );
     return () => window.clearTimeout(timeout);
   }, [saveConfirmation]);
+
+  useEffect(() => {
+    if (!saveError) return;
+    const timeout = window.setTimeout(
+      () => setSaveError(""),
+      UI_TIMINGS.saveErrorMs,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [saveError]);
 
   const items = useLiveQuery(
     () =>
@@ -274,18 +262,26 @@ export function JwellCheckDashboard() {
     effectiveRefundValue > 0
       ? `Tourist ${effectiveRefundValue}%`
       : "Tourist rate";
-  const effectiveGstValue = Number.isFinite(watched.gstPercent)
-    ? watched.gstPercent
-    : 9;
+  const rawGstValue = watched.gstNotApplicable
+    ? 0
+    : showGstEditor
+      ? watched.gstPercent
+      : (watched.gstPercent ?? quote?.gstPercent ?? 9);
+  const effectiveGstValue =
+    typeof rawGstValue === "number" && Number.isFinite(rawGstValue)
+      ? rawGstValue
+      : 0;
+  const gstOptionLabel =
+    showGstEditor && effectiveGstValue <= 0
+      ? "GST rate"
+      : `GST ${effectiveGstValue > 0 ? effectiveGstValue : PRICING_DEFAULTS.gstPercent}%`;
   const previewQuote = quote
     ? {
         ...quote,
         metalRatePerGram: watched.metalRatePerGram ?? quote.metalRatePerGram,
         makingChargeType: watched.makingChargeType ?? quote.makingChargeType,
         makingChargeValue: watched.makingChargeValue ?? quote.makingChargeValue,
-        gstPercent: watched.gstNotApplicable
-          ? 0
-          : (watched.gstPercent ?? quote.gstPercent),
+        gstPercent: watched.gstNotApplicable ? 0 : effectiveGstValue,
         gstNotApplicable:
           watched.gstNotApplicable ?? quote.gstNotApplicable ?? false,
         discountType: watched.discountType ?? quote.discountType,
@@ -359,7 +355,39 @@ export function JwellCheckDashboard() {
   const comparableResults = results.filter(({ ranked }) => ranked.length >= 2);
 
   const save = handleSubmit(async (values) => {
-    if (!quote || !shop) return;
+    if (!quote || !shop || !item) return;
+    const itemName = (item.category || item.name).trim();
+    if (!itemName) {
+      setSaveError(UI_COPY.dashboard.validation.item);
+      return;
+    }
+    if (!Number.isFinite(item.weightGrams) || item.weightGrams <= 0) {
+      setSaveError(UI_COPY.dashboard.validation.weight);
+      return;
+    }
+    if (
+      !Number.isFinite(values.metalRatePerGram) ||
+      values.metalRatePerGram <= 0
+    ) {
+      setSaveError(UI_COPY.dashboard.validation.rate);
+      return;
+    }
+    if (
+      showGstEditor &&
+      !values.gstNotApplicable &&
+      (!Number.isFinite(values.gstPercent) || values.gstPercent <= 0)
+    ) {
+      setSaveError(UI_COPY.dashboard.validation.gst);
+      return;
+    }
+    if (
+      showRefundEditor &&
+      !values.refundNotApplicable &&
+      (!Number.isFinite(values.refundValue) || values.refundValue <= 0)
+    ) {
+      setSaveError(UI_COPY.dashboard.validation.refund);
+      return;
+    }
     await updateQuote(quote.id, {
       ...values,
       metalRatePerGram: Number.isFinite(values.metalRatePerGram)
@@ -390,11 +418,35 @@ export function JwellCheckDashboard() {
           : 0,
     });
     setSaveConfirmation((current) => current + 1);
+    setSaveError("");
+  }, (errors) => {
+    if (errors.metalRatePerGram) {
+      setSaveError(UI_COPY.dashboard.validation.rate);
+      return;
+    }
+    if (errors.makingChargeValue) {
+      setSaveError(UI_COPY.dashboard.validation.makingCharge);
+      return;
+    }
+    if (errors.gstPercent) {
+      setSaveError(UI_COPY.dashboard.validation.gst);
+      return;
+    }
+    if (errors.refundValue) {
+      setSaveError(UI_COPY.dashboard.validation.refund);
+      return;
+    }
+    if (errors.discountValue) {
+      setSaveError(UI_COPY.dashboard.validation.discount);
+    }
   });
 
   function flash(text: string) {
     setMessage(text);
-    window.setTimeout(() => setMessage(""), 2400);
+    window.setTimeout(
+      () => setMessage(""),
+      UI_TIMINGS.inlineMessageMs,
+    );
   }
 
   async function createItem() {
@@ -474,20 +526,20 @@ export function JwellCheckDashboard() {
       )
       .join("\n");
     try {
-      if (navigator.share) await navigator.share({ title: "JwellCheck", text });
+      if (navigator.share) await navigator.share({ title: APP.name, text });
       else {
         await navigator.clipboard.writeText(text);
-        flash("Comparison copied");
+        flash(UI_COPY.dashboard.messages.comparisonCopied);
       }
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError"))
-        flash("Sharing is unavailable");
+        flash(UI_COPY.dashboard.messages.sharingUnavailable);
     }
   }
 
   async function clearAllData() {
     const confirmed = window.confirm(
-      "Clear every item and shop price? This cannot be undone.",
+      UI_COPY.dashboard.messages.clearConfirmation,
     );
     if (!confirmed) return;
     await db.transaction("rw", db.items, db.shops, db.quotes, async () => {
@@ -520,9 +572,9 @@ export function JwellCheckDashboard() {
               className={styles.clearButton}
               type="button"
               onClick={clearAllData}
-              aria-label="Clear all data"
+              aria-label={UI_COPY.dashboard.labels.clearAll}
             >
-              <Trash2 size={17} /> <span>Clear</span>
+              <Trash2 size={17} /> <span>{UI_COPY.dashboard.labels.clear}</span>
             </button>
           </div>
         </header>
@@ -530,18 +582,17 @@ export function JwellCheckDashboard() {
           <span className={styles.brandMark}>
             <Gem size={25} />
           </span>
-          <h1>Start your comparison</h1>
-          <p>Add your first shop and jewellery item.</p>
+          <h1>{UI_COPY.dashboard.labels.startTitle}</h1>
+          <p>{UI_COPY.dashboard.labels.startText}</p>
           <button
             className={styles.primaryButton}
             type="button"
             onClick={createShop}
           >
-            <CirclePlus size={18} /> Add first shop
+            <CirclePlus size={18} /> {UI_COPY.dashboard.labels.addFirstShop}
           </button>
           <small className={styles.purchaseNote}>
-            For comparison only. Before purchasing, confirm the final price with
-            the shopkeeper.
+            {UI_COPY.dashboard.purchaseNote}
           </small>
         </main>
       </div>
@@ -554,22 +605,22 @@ export function JwellCheckDashboard() {
         <Brand />
         <div className={styles.headerActions}>
           <HeaderLinks />
-          <span className={styles.savedState}>Saved automatically</span>
+          <span className={styles.savedState}>{UI_COPY.dashboard.labels.savedAutomatically}</span>
           <button
             className={styles.clearButton}
             type="button"
             onClick={clearAllData}
-            aria-label="Clear all data"
+            aria-label={UI_COPY.dashboard.labels.clearAll}
           >
-            <Trash2 size={17} /> <span>Clear</span>
+            <Trash2 size={17} /> <span>{UI_COPY.dashboard.labels.clear}</span>
           </button>
           <button
             className={styles.ghostButton}
             type="button"
             onClick={share}
-            aria-label="Share comparison"
+            aria-label={UI_COPY.dashboard.labels.shareComparison}
           >
-            <Share2 size={17} /> <span>Share</span>
+            <Share2 size={17} /> <span>{UI_COPY.dashboard.labels.share}</span>
           </button>
         </div>
       </header>
@@ -585,8 +636,23 @@ export function JwellCheckDashboard() {
             <CheckCircle2 size={21} />
           </span>
           <div>
-            <strong>Saved successfully</strong>
-            <small>Your price is saved in this browser.</small>
+            <strong>{UI_COPY.dashboard.savedSuccessfully}</strong>
+            <small>{UI_COPY.dashboard.savedBrowser}</small>
+          </div>
+        </div>
+      )}
+      {saveError && (
+        <div
+          className={`${styles.saveToast} ${styles.saveErrorToast}`}
+          role="alert"
+          aria-live="assertive"
+        >
+          <span>
+            <AlertCircle size={21} />
+          </span>
+          <div>
+            <strong>{UI_COPY.dashboard.cannotSave}</strong>
+            <small>{saveError}</small>
           </div>
         </div>
       )}
@@ -594,8 +660,8 @@ export function JwellCheckDashboard() {
       <main className={styles.main}>
         <section className={styles.hero}>
           <div>
-            <h1>Compare jewellery prices</h1>
-            <p>One item. Multiple shops. A clear final price.</p>
+            <h1>{UI_COPY.dashboard.title}</h1>
+            <p>{UI_COPY.dashboard.subtitle}</p>
           </div>
           <button
             className={styles.primaryButton}
@@ -853,7 +919,7 @@ export function JwellCheckDashboard() {
                       updateItem(item.id, { purity: event.target.value })
                     }
                   >
-                    {purities.map((purity) => (
+                    {PURITY_OPTIONS.map((purity) => (
                       <option key={purity}>{purity}</option>
                     ))}
                   </select>
@@ -899,7 +965,7 @@ export function JwellCheckDashboard() {
                       />
                       <div className={styles.quickChoices}>
                         <div
-                          className={styles.optionChoices}
+                          className={`${styles.optionChoices} ${styles.gstChoices}`}
                           role="group"
                           aria-label="GST options"
                         >
@@ -921,37 +987,39 @@ export function JwellCheckDashboard() {
                           <button
                             type="button"
                             aria-pressed={
-                              !watched.gstNotApplicable &&
-                              effectiveGstValue === 9 &&
-                              !showGstEditor
+                              !watched.gstNotApplicable && !showGstEditor
                             }
                             onClick={() => {
                               setValue("gstNotApplicable", false);
-                              setValue("gstPercent", 9);
+                              if (effectiveGstValue <= 0) {
+                                setValue("gstPercent", 9);
+                              }
                               setShowGstEditor(false);
                             }}
                           >
                             {!watched.gstNotApplicable &&
-                              effectiveGstValue === 9 &&
                               !showGstEditor && <Check size={14} />}
-                            GST 9%
+                            {gstOptionLabel}
                           </button>
                           <button
                             type="button"
                             aria-expanded={showGstEditor}
                             aria-pressed={showGstEditor}
                             onClick={() => {
+                              const openingEditor = !showGstEditor;
                               setValue("gstNotApplicable", false);
-                              if (!Number.isFinite(watched.gstPercent)) {
-                                setValue("gstPercent", 9);
+                              if (
+                                openingEditor &&
+                                (watched.gstNotApplicable ||
+                                  effectiveGstValue === PRICING_DEFAULTS.gstPercent)
+                              ) {
+                                setValue("gstPercent", Number.NaN);
                               }
-                              setShowGstEditor((visible) => !visible);
+                              setShowGstEditor(openingEditor);
                             }}
                           >
                             {showGstEditor && <Check size={14} />}
-                            {effectiveGstValue !== 9
-                              ? `Edit GST · ${effectiveGstValue}%`
-                              : "Edit GST"}
+                            Edit GST
                           </button>
                         </div>
                         <div className={styles.quickChoiceField}>
@@ -1067,11 +1135,16 @@ export function JwellCheckDashboard() {
                             aria-expanded={showRefundEditor}
                             aria-pressed={showRefundEditor}
                             onClick={() => {
+                              const openingEditor = !showRefundEditor;
                               setValue("refundNotApplicable", false);
-                              if (!Number.isFinite(watched.refundValue)) {
-                                setValue("refundValue", 7);
+                              if (
+                                openingEditor &&
+                                (watched.refundNotApplicable ||
+                                  effectiveRefundValue === PRICING_DEFAULTS.touristRefundPercent)
+                              ) {
+                                setValue("refundValue", Number.NaN);
                               }
-                              setShowRefundEditor((visible) => !visible);
+                              setShowRefundEditor(openingEditor);
                             }}
                           >
                             {showRefundEditor && <Check size={14} />}
@@ -1133,9 +1206,17 @@ export function JwellCheckDashboard() {
                               max="100"
                               step="0.01"
                               {...register("gstPercent", {
-                                valueAsNumber: true,
-                                required: true,
+                                setValueAs: (value) =>
+                                  value === "" ? Number.NaN : Number(value),
                               })}
+                              onInput={(event) => {
+                                const value = event.currentTarget.value;
+                                setValue(
+                                  "gstPercent",
+                                  value === "" ? Number.NaN : Number(value),
+                                  { shouldDirty: true },
+                                );
+                              }}
                               placeholder="Enter GST"
                             />
                           </label>
@@ -1475,7 +1556,7 @@ export function JwellCheckDashboard() {
                     </strong>
                     <span>
                       {shops.length < 2
-                        ? "Save the same item in another shop, then JwellCheck can find the better price."
+                        ? `Save the same item in another shop, then ${APP.name} can find the better price.`
                         : "Use the same item name and purity in at least two shops, with weight, rate and complete pricing."}
                     </span>
                   </div>
@@ -1608,12 +1689,12 @@ function PriceCard({
 
 function Brand() {
   return (
-    <div className={styles.brand} aria-label="JwellCheck">
+    <div className={styles.brand} aria-label={APP.name}>
       <span className={styles.brandMark}>
         <Gem size={22} />
         <BadgeCheck size={12} />
       </span>
-      <strong>JwellCheck</strong>
+      <strong>{APP.name}</strong>
     </div>
   );
 }
@@ -1628,7 +1709,7 @@ function SearchableItemSelect({
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
 
-  const matches = categories.filter((category) =>
+  const matches = JEWELLERY_CATEGORIES.filter((category) =>
     category.toLowerCase().includes(query.trim().toLowerCase()),
   );
 

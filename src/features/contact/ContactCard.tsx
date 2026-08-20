@@ -13,6 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import styles from "@/app/info-page.module.css";
+import { APP, UI_COPY } from "@/config/app-constants";
 
 export function ContactCard() {
   const [showPhone, setShowPhone] = useState(false);
@@ -26,8 +27,8 @@ export function ContactCard() {
             <UserRound size={18} />
           </span>
           <p>
-            <small>Contact</small>
-            <strong>Akash Kumar</strong>
+            <small>{UI_COPY.contact.contact}</small>
+            <strong>{APP.contact.name}</strong>
           </p>
         </div>
         <div>
@@ -35,8 +36,8 @@ export function ContactCard() {
             <MapPin size={18} />
           </span>
           <p>
-            <small>Location</small>
-            <strong>Singapore</strong>
+            <small>{UI_COPY.contact.location}</small>
+            <strong>{APP.contact.location}</strong>
           </p>
         </div>
         <div>
@@ -44,26 +45,24 @@ export function ContactCard() {
             <Mail size={18} />
           </span>
           <p>
-            <small>Email</small>
+            <small>{UI_COPY.contact.email}</small>
             <strong>
               {showEmail ? (
-                <a href="mailto:akashkr2929@gmail.com">
-                  akashkr2929@gmail.com
-                </a>
+                <a href={`mailto:${APP.contact.email}`}>{APP.contact.email}</a>
               ) : (
-                "a••••••••@gmail.com"
+                APP.contact.maskedEmail
               )}
             </strong>
           </p>
           <button
             className={styles.visibilityButton}
             type="button"
-            aria-label={`${showEmail ? "Hide" : "Show"} email address`}
+            aria-label={`${showEmail ? UI_COPY.common.hide : UI_COPY.common.show} email address`}
             aria-pressed={showEmail}
             onClick={() => setShowEmail((visible) => !visible)}
           >
             {showEmail ? <EyeOff size={16} /> : <Eye size={16} />}
-            {showEmail ? "Hide" : "Show"}
+            {showEmail ? UI_COPY.common.hide : UI_COPY.common.show}
           </button>
         </div>
         <div>
@@ -71,8 +70,8 @@ export function ContactCard() {
             <Phone size={18} />
           </span>
           <p>
-            <small>Phone number</small>
-            <strong>{showPhone ? "+65 9347 8235" : "+65 •••• ••••"}</strong>
+            <small>{UI_COPY.contact.phone}</small>
+            <strong>{showPhone ? APP.contact.phone : APP.contact.maskedPhone}</strong>
           </p>
           <button
             className={styles.visibilityButton}
@@ -81,7 +80,7 @@ export function ContactCard() {
             onClick={() => setShowPhone((visible) => !visible)}
           >
             {showPhone ? <EyeOff size={16} /> : <Eye size={16} />}
-            {showPhone ? "Hide" : "Show"}
+            {showPhone ? UI_COPY.common.hide : UI_COPY.common.show}
           </button>
         </div>
       </div>
@@ -89,19 +88,14 @@ export function ContactCard() {
       <div className={styles.collaborationMessage}>
         <Lightbulb size={24} />
         <div>
-          <h2>Let&apos;s build something useful</h2>
-          <p>
-            Have an innovative idea? Let&apos;s collaborate on simple solutions
-            that support our community and make everyday life easier.
-          </p>
-          <blockquote>
-            “Small ideas, shared together, can create meaningful change.”
-          </blockquote>
+          <h2>{UI_COPY.contact.collaborationTitle}</h2>
+          <p>{UI_COPY.contact.collaborationText}</p>
+          <blockquote>{UI_COPY.contact.collaborationQuote}</blockquote>
         </div>
       </div>
 
-      <Link className={styles.button} href="/feedback">
-        <MessageCircle size={17} /> Share an idea or feedback
+      <Link className={styles.button} href={APP.links.feedback}>
+        <MessageCircle size={17} /> {UI_COPY.contact.shareIdea}
       </Link>
     </section>
   );
