@@ -49,6 +49,59 @@
   color: var(--muted);
   font-size: 0.78rem;
 }
+.saveToast {
+  position: fixed;
+  z-index: 50;
+  top: 82px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(calc(100% - 28px), 360px);
+  padding: 11px 13px;
+  color: #eaf6ed;
+  background: color-mix(in srgb, #234b35, var(--surface) 18%);
+  border: 1px solid rgba(113, 181, 137, 0.48);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+  transform: translateX(-50%);
+  animation: saveToastIn 220ms ease-out;
+}
+.saveToast > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  height: 36px;
+  color: #dff3e5;
+  background: rgba(111, 174, 133, 0.2);
+  border-radius: 11px;
+}
+.saveToast > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.saveToast strong {
+  font-size: 0.82rem;
+}
+.saveToast small {
+  overflow: hidden;
+  color: #b8cfbf;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@keyframes saveToastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .saveToast {
+    animation: none;
+  }
+}
 .main {
   width: min(1180px, calc(100% - 32px));
   margin: auto;
@@ -554,7 +607,8 @@
   gap: 7px;
   margin-bottom: 12px;
 }
-.quickChoices button {
+.quickChoices button,
+.optionChoices button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -568,30 +622,82 @@
   font-size: 0.76rem;
   font-weight: 700;
 }
-.quickChoices button:focus {
+.quickChoices button:focus,
+.optionChoices button:focus {
   outline: none;
 }
-.quickChoices button:focus-visible {
+.quickChoices button:focus-visible,
+.optionChoices button:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, #d8b968, transparent 72%);
 }
-.quickChoices button[aria-pressed="true"] {
+.quickChoices button[aria-pressed="true"],
+.optionChoices button[aria-pressed="true"] {
   color: #241d13;
   background: #f2dfad;
   border-color: #f2dfad;
   box-shadow: 0 6px 18px rgba(216, 185, 104, 0.12);
 }
+.optionChoices {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 3px;
+  background: color-mix(in srgb, var(--surface), #fff 1.5%);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.optionChoices button {
+  min-height: 32px;
+  border-color: transparent;
+}
+.quickChoiceField {
+  flex: 1 1 100%;
+}
+.quickChoiceField .optionChoices {
+  width: 100%;
+  min-height: 44px;
+  flex-wrap: nowrap;
+  border-radius: 12px;
+}
+.quickChoiceField .optionChoices button {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+.refundChoices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  flex: 1 1 100%;
+  border-radius: 12px;
+}
+.refundChoices button {
+  min-width: 0;
+  padding-inline: 7px;
+  white-space: nowrap;
+}
+.mobileChargeLabel {
+  display: none;
+}
 .moreOptions {
   margin-top: 0;
-  padding: 0 13px;
-  background: var(--background);
-  border: 1px solid var(--line);
-  border-radius: 13px;
+  padding: 0 16px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--surface), #fff 2%),
+    var(--surface)
+  );
+  border: 1px solid var(--line-strong);
+  border-radius: 15px;
+  overflow: hidden;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 .moreOptions summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 46px;
+  min-height: 50px;
   padding: 0;
   color: var(--muted);
   cursor: pointer;
@@ -599,28 +705,86 @@
   font-weight: 750;
   list-style: none;
 }
-.moreOptions summary span {
+.moreOptions summary > span {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+}
+.moreOptionsLabel {
+  display: grid;
+  gap: 1px;
+}
+.moreOptionsLabel strong {
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.15;
+}
+.moreOptionsLabel small {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 600;
 }
 .moreOptions summary:focus {
   outline: none;
 }
 .moreOptions summary:focus-visible {
-  border-radius: 8px;
-  box-shadow: 0 0 0 3px color-mix(in srgb, #d8b968, transparent 75%);
+  outline: 2px solid color-mix(in srgb, #d8b968, transparent 32%);
+  outline-offset: 3px;
+  border-radius: 9px;
 }
 .moreOptions[open] summary {
   color: var(--text);
   border-bottom: 1px solid var(--line);
 }
+.moreOptions[open] {
+  border-color: color-mix(in srgb, #d8b968, var(--line-strong) 55%);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
 .moreOptions[open] summary > svg:last-child {
   transform: rotate(180deg);
 }
 .moreOptions > .formGrid {
-  margin-top: 14px;
-  padding-bottom: 14px;
+  margin-top: 16px;
+  padding-bottom: 16px;
+}
+.optionalFields {
+  gap: 14px;
+}
+.discountField {
+  display: grid;
+  gap: 7px;
+}
+.fieldHeading {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.discountChoices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  border-radius: 12px;
+}
+.discountChoices button {
+  min-width: 0;
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+.notesField > span {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.notesField small {
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+.notesField textarea {
+  min-height: 92px;
+  line-height: 1.45;
+  resize: vertical;
+  background: color-mix(in srgb, var(--surface), #fff 2.5%);
 }
 .fullField {
   grid-column: 1 / -1;
@@ -770,27 +934,15 @@
 }
 .resultList {
   display: grid;
-  gap: 1px;
-  margin-top: 16px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  gap: 14px;
 }
 .resultList article {
   display: grid;
-  grid-template-columns: minmax(150px, 0.8fr) minmax(180px, 1fr) auto;
-  align-items: center;
-  gap: 18px;
-  padding: 15px 17px;
-  background: var(--background);
-  border-bottom: 1px solid var(--line);
-}
-.resultList article:last-child {
-  border-bottom: 0;
-}
-.resultList article > div {
-  display: grid;
-  gap: 3px;
+  gap: 14px;
+  padding: 17px;
+  background: color-mix(in srgb, var(--background), #fff 1.5%);
+  border: 1px solid var(--line);
+  border-radius: 16px;
 }
 .resultList small {
   display: block;
@@ -799,12 +951,66 @@
   font-weight: 500;
 }
 .resultItem > strong {
-  font-size: 0.95rem;
+  font-size: 1rem;
+}
+.comparisonResults {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+.comparisonIntro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  color: #9acaaa;
+  background: rgba(59, 111, 79, 0.16);
+  border: 1px solid rgba(104, 167, 126, 0.3);
+  border-radius: 13px;
+}
+.comparisonIntro > div {
+  display: grid;
+  gap: 2px;
+}
+.comparisonIntro strong {
+  color: var(--text);
+  font-size: 0.84rem;
+}
+.comparisonIntro span {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+.resultHeader,
+.winnerSummary,
+.shopBreakdownTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.resultItem {
+  display: grid;
+  gap: 3px;
+}
+.savingBadge {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  color: #9acaaa;
+  background: rgba(59, 111, 79, 0.18);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+.winnerSummary {
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(44, 93, 66, 0.38), rgba(44, 93, 66, 0.16));
+  border: 1px solid rgba(104, 167, 126, 0.28);
+  border-radius: 13px;
 }
 .bestShop {
   display: flex !important;
-  grid-template-columns: auto 1fr;
   align-items: center;
+  gap: 8px;
   color: #68a77e;
 }
 .bestShop > span {
@@ -823,6 +1029,75 @@
 .resultPrice > small {
   color: #68a77e;
   font-size: 0.68rem;
+}
+.shopComparisonGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.shopBreakdown {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+}
+.shopBreakdownBest {
+  border-color: rgba(104, 167, 126, 0.42);
+}
+.shopBreakdownTop > span {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+  color: #68a77e;
+}
+.shopBreakdownTop strong {
+  overflow: hidden;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.priceBar {
+  height: 5px;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: 999px;
+}
+.priceBar span {
+  display: block;
+  height: 100%;
+  background: #b4924e;
+  border-radius: inherit;
+}
+.shopBreakdownBest .priceBar span {
+  background: #68a77e;
+}
+.shopBreakdown dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.shopBreakdown dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.shopBreakdown dt,
+.shopBreakdown dd {
+  margin: 0;
+  font-size: 0.68rem;
+}
+.shopBreakdown dt {
+  color: var(--muted);
+}
+.shopBreakdown dd {
+  color: var(--text);
+  font-weight: 650;
+  text-align: right;
 }
 .muted {
   color: var(--muted);
@@ -1178,17 +1453,77 @@
   .quoteForm {
     padding: 13px;
   }
-  .resultList article {
-    grid-template-columns: 1fr auto;
-    gap: 10px;
+  .formActions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    width: 100%;
+    margin-top: 0;
+    padding: 0;
   }
-  .bestShop {
-    grid-column: 1 / -1;
-    grid-row: 2;
+  .formActions span:empty {
+    display: none;
+  }
+  .actionButtons {
+    justify-self: stretch;
+    width: 100%;
+    margin-left: 0;
+  }
+  .actionButtons .primaryButton {
+    width: 100%;
+    min-height: 48px;
+  }
+  .optionChoices {
+    width: 100%;
+    border-radius: 14px;
+  }
+  .quickChoices .optionChoices button,
+  .quickChoiceField .optionChoices button {
+    flex: 1 1 auto;
+  }
+  .quickChoiceField .optionChoices {
+    gap: 2px;
+    padding: 2px;
+  }
+  .quickChoiceField .optionChoices button {
+    min-height: 34px;
+    padding-inline: 5px;
+    font-size: 0.67rem;
+  }
+  .refundChoices {
+    gap: 2px;
+    padding: 2px;
+  }
+  .refundChoices button {
+    min-height: 34px;
+    padding-inline: 3px;
+    font-size: clamp(0.61rem, 2.75vw, 0.68rem);
+    letter-spacing: -0.01em;
+  }
+  .refundChoices button svg {
+    width: 12px;
+    height: 12px;
+  }
+  .desktopChargeLabel {
+    display: none;
+  }
+  .mobileChargeLabel {
+    display: inline;
+  }
+  .resultList article {
+    gap: 10px;
+    padding: 13px;
+  }
+  .shopComparisonGrid {
+    grid-template-columns: 1fr;
+  }
+  .winnerSummary {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .resultPrice {
-    grid-column: 2;
-    grid-row: 1;
+    justify-items: start;
+    text-align: left;
   }
 }
 

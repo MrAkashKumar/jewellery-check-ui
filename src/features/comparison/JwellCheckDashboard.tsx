@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   BarChart3,
   Check,
+  CheckCircle2,
   ChevronDown,
   CirclePlus,
   Gem,
@@ -89,6 +90,42 @@ const money = new Intl.NumberFormat("en-SG", {
   minimumFractionDigits: 2,
 });
 
+type RankedQuote = {
+  quote: Quote;
+  item: JewelleryItem | undefined;
+  total: ReturnType<typeof calculateQuote>;
+};
+
+function explainPriceAdvantage(best: RankedQuote, next: RankedQuote) {
+  const candidates = [
+    {
+      label:
+        best.quote.metalRatePerGram < next.quote.metalRatePerGram
+          ? "lower gold rate"
+          : "lower metal value",
+      amount: next.total.metalValue - best.total.metalValue,
+    },
+    {
+      label: "lower making charge",
+      amount:
+        (next.total.makingCharge ?? 0) - (best.total.makingCharge ?? 0),
+    },
+    { label: "lower GST", amount: next.total.gst - best.total.gst },
+    {
+      label: "better discount",
+      amount: (best.total.discount ?? 0) - (next.total.discount ?? 0),
+    },
+    {
+      label: "higher tourist refund",
+      amount: (best.total.refund ?? 0) - (next.total.refund ?? 0),
+    },
+  ].sort((a, b) => b.amount - a.amount);
+  const main = candidates[0];
+  return main.amount > 0.005
+    ? `Main advantage: ${main.label} by ${money.format(main.amount)}`
+    : "Lowest combined final price";
+}
+
 function localDateKey(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "unknown";
@@ -119,10 +156,19 @@ export function JwellCheckDashboard() {
   const [message, setMessage] = useState("");
   const [showComparison, setShowComparison] = useState(false);
   const [mobileShopMenuOpen, setMobileShopMenuOpen] = useState(false);
+  const [showGstEditor, setShowGstEditor] = useState(false);
+  const [showRefundEditor, setShowRefundEditor] = useState(false);
+  const [saveConfirmation, setSaveConfirmation] = useState(0);
 
   useEffect(() => {
     seedDatabase().then(() => setReady(true));
   }, []);
+
+  useEffect(() => {
+    if (!saveConfirmation) return;
+    const timeout = window.setTimeout(() => setSaveConfirmation(0), 2000);
+    return () => window.clearTimeout(timeout);
+  }, [saveConfirmation]);
 
   const items = useLiveQuery(
     () =>
@@ -188,10 +234,7 @@ export function JwellCheckDashboard() {
         quote.metalRatePerGram === 0
           ? Number.NaN
           : quote.metalRatePerGram,
-      makingChargeType:
-        quote.metalRatePerGram === 0
-          ? ("" as Quote["makingChargeType"])
-          : quote.makingChargeType,
+      makingChargeType: quote.makingChargeType,
       makingChargeValue:
         quote.makingChargeValue === 0
           ? Number.NaN
@@ -220,10 +263,20 @@ export function JwellCheckDashboard() {
 
   const rawRefundValue = watched.refundNotApplicable
     ? 0
-    : (watched.refundValue ?? quote?.refundValue ?? 0);
-  const effectiveRefundValue = Number.isFinite(rawRefundValue)
+    : showRefundEditor
+      ? watched.refundValue
+      : (watched.refundValue ?? quote?.refundValue ?? 0);
+  const effectiveRefundValue =
+    typeof rawRefundValue === "number" && Number.isFinite(rawRefundValue)
     ? rawRefundValue
     : 0;
+  const refundOptionLabel =
+    effectiveRefundValue > 0
+      ? `Tourist ${effectiveRefundValue}%`
+      : "Tourist rate";
+  const effectiveGstValue = Number.isFinite(watched.gstPercent)
+    ? watched.gstPercent
+    : 9;
   const previewQuote = quote
     ? {
         ...quote,
@@ -233,6 +286,8 @@ export function JwellCheckDashboard() {
         gstPercent: watched.gstNotApplicable
           ? 0
           : (watched.gstPercent ?? quote.gstPercent),
+        gstNotApplicable:
+          watched.gstNotApplicable ?? quote.gstNotApplicable ?? false,
         discountType: watched.discountType ?? quote.discountType,
         discountValue: watched.discountValue ?? quote.discountValue,
         additionalFees: 0,
@@ -263,11 +318,7 @@ export function JwellCheckDashboard() {
         .trim()
         .toLowerCase();
       if (!itemName || currentItem.weightGrams <= 0) return;
-      const key = [
-        itemName,
-        currentItem.purity.trim().toLowerCase(),
-        currentItem.weightGrams.toFixed(3),
-      ].join("|");
+      const key = [itemName, currentItem.purity.trim().toLowerCase()].join("|");
       const group = comparisonGroups.get(key) ?? [];
       group.push(currentItem);
       comparisonGroups.set(key, group);
@@ -305,6 +356,8 @@ export function JwellCheckDashboard() {
     });
   }, [items, quotes, shops, showComparison]);
 
+  const comparableResults = results.filter(({ ranked }) => ranked.length >= 2);
+
   const save = handleSubmit(async (values) => {
     if (!quote || !shop) return;
     await updateQuote(quote.id, {
@@ -336,7 +389,7 @@ export function JwellCheckDashboard() {
           ? values.refundValue
           : 0,
     });
-    flash("Saved in this browser");
+    setSaveConfirmation((current) => current + 1);
   });
 
   function flash(text: string) {
@@ -520,6 +573,23 @@ export function JwellCheckDashboard() {
           </button>
         </div>
       </header>
+
+      {saveConfirmation > 0 && (
+        <div
+          className={styles.saveToast}
+          role="status"
+          aria-live="polite"
+          key={saveConfirmation}
+        >
+          <span>
+            <CheckCircle2 size={21} />
+          </span>
+          <div>
+            <strong>Saved successfully</strong>
+            <small>Your price is saved in this browser.</small>
+          </div>
+        </div>
+      )}
 
       <main className={styles.main}>
         <section className={styles.hero}>
@@ -822,82 +892,203 @@ export function JwellCheckDashboard() {
                   <div className={styles.quoteEditor}>
                     <div className={styles.quoteForm}>
                       <input type="hidden" {...register("gstNotApplicable")} />
+                      <input type="hidden" {...register("makingChargeType")} />
                       <input
                         type="hidden"
                         {...register("refundNotApplicable")}
                       />
                       <div className={styles.quickChoices}>
-                        <button
-                          type="button"
-                          aria-pressed={watched.makingChargeType === "none"}
-                          onClick={() => {
-                            const next = watched.makingChargeType !== "none";
-                            setValue(
-                              "makingChargeType",
-                              next ? "none" : ("" as Quote["makingChargeType"]),
-                            );
-                            if (next)
-                              setValue(
-                                "makingChargeValue",
-                                undefined as unknown as number,
-                              );
-                          }}
+                        <div
+                          className={styles.optionChoices}
+                          role="group"
+                          aria-label="GST options"
                         >
-                          {watched.makingChargeType === "none" && (
-                            <Check size={14} />
-                          )}
-                          No making charge
-                        </button>
-                        <button
-                          type="button"
-                          aria-pressed={Boolean(watched.gstNotApplicable)}
-                          onClick={() => {
-                            const next = !watched.gstNotApplicable;
-                            setValue("gstNotApplicable", next);
-                            if (next) {
+                          <button
+                            type="button"
+                            aria-pressed={Boolean(watched.gstNotApplicable)}
+                            onClick={() => {
+                              setValue("gstNotApplicable", true);
                               setValue(
                                 "gstPercent",
                                 undefined as unknown as number,
                               );
-                            } else {
-                              setValue("gstPercent", 9);
+                              setShowGstEditor(false);
+                            }}
+                          >
+                            {watched.gstNotApplicable && <Check size={14} />}
+                            No GST
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={
+                              !watched.gstNotApplicable &&
+                              effectiveGstValue === 9 &&
+                              !showGstEditor
                             }
-                          }}
+                            onClick={() => {
+                              setValue("gstNotApplicable", false);
+                              setValue("gstPercent", 9);
+                              setShowGstEditor(false);
+                            }}
+                          >
+                            {!watched.gstNotApplicable &&
+                              effectiveGstValue === 9 &&
+                              !showGstEditor && <Check size={14} />}
+                            GST 9%
+                          </button>
+                          <button
+                            type="button"
+                            aria-expanded={showGstEditor}
+                            aria-pressed={showGstEditor}
+                            onClick={() => {
+                              setValue("gstNotApplicable", false);
+                              if (!Number.isFinite(watched.gstPercent)) {
+                                setValue("gstPercent", 9);
+                              }
+                              setShowGstEditor((visible) => !visible);
+                            }}
+                          >
+                            {showGstEditor && <Check size={14} />}
+                            {effectiveGstValue !== 9
+                              ? `Edit GST · ${effectiveGstValue}%`
+                              : "Edit GST"}
+                          </button>
+                        </div>
+                        <div className={styles.quickChoiceField}>
+                          <div
+                            className={styles.optionChoices}
+                            role="group"
+                            aria-label="Making charge options"
+                          >
+                            <button
+                              type="button"
+                              aria-label="Making charge: None"
+                              aria-pressed={
+                                watched.makingChargeType === "none"
+                              }
+                              onClick={() => {
+                                setValue("makingChargeType", "none");
+                                setValue(
+                                  "makingChargeValue",
+                                  undefined as unknown as number,
+                                );
+                              }}
+                            >
+                              {watched.makingChargeType === "none" && (
+                                <Check size={14} />
+                              )}
+                              <span className={styles.desktopChargeLabel}>
+                                Making charge: None
+                              </span>
+                              <span className={styles.mobileChargeLabel}>
+                                Making: None
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              aria-pressed={
+                                watched.makingChargeType === "fixed"
+                              }
+                              onClick={() => {
+                                setValue("makingChargeType", "fixed");
+                                setValue(
+                                  "makingChargeValue",
+                                  undefined as unknown as number,
+                                );
+                              }}
+                            >
+                              {watched.makingChargeType === "fixed" && (
+                                <Check size={14} />
+                              )}
+                              Fixed amount
+                            </button>
+                            <button
+                              type="button"
+                              aria-pressed={
+                                watched.makingChargeType === "percentage"
+                              }
+                              onClick={() => {
+                                setValue("makingChargeType", "percentage");
+                                setValue(
+                                  "makingChargeValue",
+                                  undefined as unknown as number,
+                                );
+                              }}
+                            >
+                              {watched.makingChargeType === "percentage" && (
+                                <Check size={14} />
+                              )}
+                              Percentage
+                            </button>
+                          </div>
+                        </div>
+                        <div
+                          className={`${styles.optionChoices} ${styles.refundChoices}`}
+                          role="group"
+                          aria-label="Tourist refund options"
                         >
-                          {watched.gstNotApplicable && <Check size={14} />}
-                          {watched.gstNotApplicable
-                            ? "No GST charged"
-                            : `GST · ${Number.isFinite(watched.gstPercent) ? watched.gstPercent : 9}%`}
-                        </button>
-                        <button
-                          type="button"
-                          aria-pressed={!watched.refundNotApplicable}
-                          onClick={() => {
-                            const enableTouristRefund = Boolean(
+                          <button
+                            type="button"
+                            aria-pressed={Boolean(
                               watched.refundNotApplicable,
-                            );
-                            setValue(
-                              "refundNotApplicable",
-                              !enableTouristRefund,
-                            );
-                            if (enableTouristRefund) {
-                              setValue("refundValue", 7);
-                            } else {
+                            )}
+                            onClick={() => {
+                              setValue("refundNotApplicable", true);
                               setValue(
                                 "refundValue",
                                 undefined as unknown as number,
                               );
+                              setShowRefundEditor(false);
+                            }}
+                          >
+                            {watched.refundNotApplicable && <Check size={14} />}
+                            No refund
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={
+                              !watched.refundNotApplicable &&
+                              !showRefundEditor
                             }
-                          }}
-                        >
-                          {!watched.refundNotApplicable && <Check size={14} />}
-                          {watched.refundNotApplicable
-                            ? "Tourist buyer?"
-                            : `Tourist · ${effectiveRefundValue}% refund`}
-                        </button>
+                            onClick={() => {
+                              setValue("refundNotApplicable", false);
+                              if (effectiveRefundValue <= 0) {
+                                setValue("refundValue", 7);
+                              }
+                              setShowRefundEditor(false);
+                            }}
+                          >
+                            {!watched.refundNotApplicable &&
+                              !showRefundEditor && <Check size={14} />}
+                            {refundOptionLabel}
+                          </button>
+                          <button
+                            type="button"
+                            aria-expanded={showRefundEditor}
+                            aria-pressed={showRefundEditor}
+                            onClick={() => {
+                              setValue("refundNotApplicable", false);
+                              if (!Number.isFinite(watched.refundValue)) {
+                                setValue("refundValue", 7);
+                              }
+                              setShowRefundEditor((visible) => !visible);
+                            }}
+                          >
+                            {showRefundEditor && <Check size={14} />}
+                            Edit rate
+                          </button>
+                        </div>
                       </div>
                       <div className={styles.formGrid}>
-                        <label>
+                        <label
+                          className={
+                            watched.makingChargeType === "none" &&
+                            (watched.gstNotApplicable || !showGstEditor) &&
+                            !showRefundEditor
+                              ? styles.fullField
+                              : undefined
+                          }
+                        >
                           Rate per gram (S$)
                           <input
                             type="number"
@@ -909,21 +1100,6 @@ export function JwellCheckDashboard() {
                               required: true,
                             })}
                           />
-                        </label>
-                        <label>
-                          Making charge
-                          <select
-                            {...register("makingChargeType", {
-                              required: true,
-                            })}
-                          >
-                            <option value="" disabled>
-                              Select charge
-                            </option>
-                            <option value="none">None</option>
-                            <option value="fixed">Fixed amount</option>
-                            <option value="percentage">Percentage (%)</option>
-                          </select>
                         </label>
                         {(watched.makingChargeType === "fixed" ||
                           watched.makingChargeType === "percentage") && (
@@ -948,9 +1124,9 @@ export function JwellCheckDashboard() {
                             )}
                           </label>
                         )}
-                        {!watched.gstNotApplicable && (
+                        {!watched.gstNotApplicable && showGstEditor && (
                           <label>
-                            GST (%)
+                            Custom GST (%)
                             <input
                               type="number"
                               min="0"
@@ -964,28 +1140,116 @@ export function JwellCheckDashboard() {
                             />
                           </label>
                         )}
+                        {!watched.refundNotApplicable && showRefundEditor && (
+                          <label>
+                            Custom tourist refund (%)
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              placeholder="7"
+                              {...register("refundValue", {
+                                setValueAs: (value) =>
+                                  value === "" ? Number.NaN : Number(value),
+                              })}
+                              onInput={(event) => {
+                                const value = event.currentTarget.value;
+                                setValue(
+                                  "refundValue",
+                                  value === "" ? Number.NaN : Number(value),
+                                  { shouldDirty: true },
+                                );
+                              }}
+                            />
+                          </label>
+                        )}
                       </div>
                     </div>
 
                     <details className={styles.moreOptions}>
                       <summary>
                         <span>
-                          <SlidersHorizontal size={16} /> More options
+                          <SlidersHorizontal size={16} />
+                          <span className={styles.moreOptionsLabel}>
+                            <strong>Discount &amp; notes</strong>
+                            <small>Optional</small>
+                          </span>
                         </span>
                         <ChevronDown size={16} />
                       </summary>
-                      <div className={styles.formGrid}>
-                        <label>
-                          Discount
-                          <select {...register("discountType")}>
-                            <option value="" disabled>
-                              Select discount
-                            </option>
-                            <option value="none">None</option>
-                            <option value="percentage">Percentage</option>
-                            <option value="fixed">Fixed amount</option>
-                          </select>
-                        </label>
+                      <div className={`${styles.formGrid} ${styles.optionalFields}`}>
+                        <div className={`${styles.fullField} ${styles.discountField}`}>
+                          <span className={styles.fieldHeading}>Discount</span>
+                          <div
+                            className={`${styles.optionChoices} ${styles.discountChoices}`}
+                            aria-label="Discount type"
+                          >
+                            <button
+                              type="button"
+                              aria-pressed={
+                                !watched.discountType ||
+                                watched.discountType === "none"
+                              }
+                              onClick={() => {
+                                setValue("discountType", "none", {
+                                  shouldDirty: true,
+                                });
+                                setValue("discountValue", 0, {
+                                  shouldDirty: true,
+                                });
+                              }}
+                            >
+                              {(!watched.discountType ||
+                                watched.discountType === "none") && (
+                                <Check size={14} />
+                              )}
+                              No discount
+                            </button>
+                            <button
+                              type="button"
+                              aria-pressed={watched.discountType === "fixed"}
+                              onClick={() => {
+                                setValue("discountType", "fixed", {
+                                  shouldDirty: true,
+                                });
+                                if (watched.discountType !== "fixed") {
+                                  setValue(
+                                    "discountValue",
+                                    Number.NaN,
+                                    { shouldDirty: true },
+                                  );
+                                }
+                              }}
+                            >
+                              {watched.discountType === "fixed" && (
+                                <Check size={14} />
+                              )}
+                              Fixed amount
+                            </button>
+                            <button
+                              type="button"
+                              aria-pressed={watched.discountType === "percentage"}
+                              onClick={() => {
+                                setValue("discountType", "percentage", {
+                                  shouldDirty: true,
+                                });
+                                if (watched.discountType !== "percentage") {
+                                  setValue(
+                                    "discountValue",
+                                    Number.NaN,
+                                    { shouldDirty: true },
+                                  );
+                                }
+                              }}
+                            >
+                              {watched.discountType === "percentage" && (
+                                <Check size={14} />
+                              )}
+                              Percentage
+                            </button>
+                          </div>
+                        </div>
                         {(watched.discountType === "percentage" ||
                           watched.discountType === "fixed") && (
                           <label>
@@ -996,33 +1260,25 @@ export function JwellCheckDashboard() {
                               type="number"
                               min="0"
                               step="0.01"
+                              placeholder={
+                                watched.discountType === "percentage"
+                                  ? "Enter percentage"
+                                  : "Enter amount"
+                              }
                               {...register("discountValue", {
                                 valueAsNumber: true,
                               })}
                             />
                           </label>
                         )}
-                        {!watched.refundNotApplicable && (
-                          <label>
-                            Estimated tourist refund (%)
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.01"
-                              placeholder="7"
-                              {...register("refundValue", {
-                                valueAsNumber: true,
-                              })}
-                            />
-                          </label>
-                        )}
-                        <label className={styles.fullField}>
-                          Notes
+                        <label className={`${styles.fullField} ${styles.notesField}`}>
+                          <span>
+                            Notes <small>Optional</small>
+                          </span>
                           <textarea
-                            rows={2}
+                            rows={3}
                             {...register("notes")}
-                            placeholder="Optional"
+                            placeholder="Add design details, shop terms, or anything worth remembering…"
                           />
                         </label>
                       </div>
@@ -1087,60 +1343,140 @@ export function JwellCheckDashboard() {
                     Hide
                   </button>
                 </div>
-                {results.some(({ ranked }) => ranked.length > 0) ? (
-                  <div className={styles.resultList}>
-                    {results
-                      .filter(({ ranked }) => ranked.length > 0)
+                {comparableResults.length > 0 ? (
+                  <div className={styles.comparisonResults}>
+                    <div className={styles.comparisonIntro}>
+                      <BadgeCheck size={19} />
+                      <div>
+                        <strong>
+                          {comparableResults.length} matching{" "}
+                          {comparableResults.length === 1 ? "item" : "items"} found
+                        </strong>
+                        <span>
+                          Each winner is based on the lowest estimated final price.
+                        </span>
+                      </div>
+                    </div>
+                    <div className={styles.resultList}>
+                    {comparableResults
                       .map(({ item: resultItem, ranked }) => {
                         const best = ranked[0];
                         const nextBest = ranked[1];
+                        const highestPrice = Math.max(
+                          ...ranked.map((entry) => entry.total.finalCost),
+                          1,
+                        );
+                        const saving = nextBest
+                          ? nextBest.total.finalCost - best.total.finalCost
+                          : 0;
+                        const advantage = nextBest
+                          ? explainPriceAdvantage(best, nextBest)
+                          : "Lowest saved final price";
                         return (
                           <article key={resultItem.id}>
-                            <div className={styles.resultItem}>
-                              <strong>{resultItem.name || "Item"}</strong>
-                              <small>
-                                {resultItem.purity} · {ranked.length}{" "}
-                                {ranked.length === 1 ? "shop" : "shops"}
-                              </small>
+                            <div className={styles.resultHeader}>
+                              <div className={styles.resultItem}>
+                                <strong>{resultItem.name || resultItem.category || "Item"}</strong>
+                                <small>
+                                  {resultItem.purity} · Compared across {ranked.length} shops
+                                </small>
+                              </div>
+                              <div className={styles.savingBadge}>
+                                Save {money.format(saving)}
+                              </div>
                             </div>
-                            {best ? (
-                              <>
-                                <div className={styles.bestShop}>
-                                  <BadgeCheck size={16} />
-                                  <span>
-                                    <strong>
-                                      {shopLabels.get(best.quote.shopId)}
-                                    </strong>
-                                    <small>
-                                      {nextBest
-                                        ? "Lowest final price"
-                                        : "Only listed shop price"}
-                                    </small>
-                                  </span>
-                                </div>
-                                <div className={styles.resultPrice}>
+                            <div className={styles.winnerSummary}>
+                              <div className={styles.bestShop}>
+                                <BadgeCheck size={19} />
+                                <span>
+                                  <small>Best price for this item</small>
                                   <strong>
-                                    {money.format(best.total.finalCost)}
+                                    {shopLabels.get(best.quote.shopId)}
                                   </strong>
-                                  <small>
-                                    {nextBest
-                                      ? `Save ${money.format(nextBest.total.finalCost - best.total.finalCost)} vs next shop`
-                                      : "Add another shop to compare"}
-                                  </small>
+                                </span>
+                              </div>
+                              <div className={styles.resultPrice}>
+                                <strong>{money.format(best.total.finalCost)}</strong>
+                                <small>{advantage}</small>
+                              </div>
+                            </div>
+                            <div className={styles.shopComparisonGrid}>
+                              {ranked.map((entry, index) => (
+                                <div
+                                  className={`${styles.shopBreakdown} ${
+                                    index === 0 ? styles.shopBreakdownBest : ""
+                                  }`}
+                                  key={entry.quote.id}
+                                >
+                                  <div className={styles.shopBreakdownTop}>
+                                    <span>
+                                      {index === 0 && <BadgeCheck size={15} />}
+                                      <strong>
+                                        {shopLabels.get(entry.quote.shopId)}
+                                      </strong>
+                                    </span>
+                                    <strong>{money.format(entry.total.finalCost)}</strong>
+                                  </div>
+                                  <div className={styles.priceBar} aria-hidden="true">
+                                    <span
+                                      style={{
+                                        width: `${Math.max(
+                                          8,
+                                          (entry.total.finalCost / highestPrice) * 100,
+                                        )}%`,
+                                      }}
+                                    />
+                                  </div>
+                                  <dl>
+                                    <div>
+                                      <dt>Weight</dt>
+                                      <dd>{entry.item?.weightGrams ?? 0}g</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Gold rate</dt>
+                                      <dd>{money.format(entry.quote.metalRatePerGram)}/g</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Metal value</dt>
+                                      <dd>{money.format(entry.total.metalValue)}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Making</dt>
+                                      <dd>{money.format(entry.total.makingCharge ?? 0)}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>GST</dt>
+                                      <dd>{money.format(entry.total.gst)}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Discount</dt>
+                                      <dd>-{money.format(entry.total.discount ?? 0)}</dd>
+                                    </div>
+                                    <div>
+                                      <dt>Tourist refund</dt>
+                                      <dd>-{money.format(entry.total.refund ?? 0)}</dd>
+                                    </div>
+                                  </dl>
                                 </div>
-                              </>
-                            ) : null}
+                              ))}
+                            </div>
                           </article>
                         );
                       })}
+                    </div>
                   </div>
                 ) : (
                   <div className={styles.comparisonEmpty}>
                     <BarChart3 size={22} />
-                    <strong>No complete prices to compare yet</strong>
+                    <strong>
+                      {shops.length < 2
+                        ? "Add one more shop to compare"
+                        : "No matching shop items yet"}
+                    </strong>
                     <span>
-                      Add an item weight and a complete price from at least one
-                      shop.
+                      {shops.length < 2
+                        ? "Save the same item in another shop, then JwellCheck can find the better price."
+                        : "Use the same item name and purity in at least two shops, with weight, rate and complete pricing."}
                     </span>
                   </div>
                 )}
@@ -1177,46 +1513,75 @@ function PriceCard({
       : quote.discountType === "fixed"
         ? "Fixed amount"
         : "No discount";
-  const rows = [
+  const hasMakingCharge =
+    quote.makingChargeType === "fixed" ||
+    quote.makingChargeType === "percentage";
+  const hasDiscount =
+    quote.discountType === "fixed" || quote.discountType === "percentage";
+  const hasGst = !quote.gstNotApplicable;
+  const hasTouristRefund =
+    quote.refundType === "percentage" && safe(quote.refundValue) > 0;
+  const rows: Array<{
+    label: string;
+    detail: string;
+    value: number | null;
+  }> = [
     {
       label: "Metal value",
       detail: `${safe(item.weightGrams)}g × ${money.format(safe(quote.metalRatePerGram))}`,
       value: breakdown.metalValue,
     },
+    ...(hasMakingCharge
+      ? [
+          {
+            label: "Making charge",
+            detail: makingDetail,
+            value: breakdown.makingCharge,
+          },
+        ]
+      : []),
+    ...(hasDiscount
+      ? [
+          {
+            label: "Discount",
+            detail: discountDetail,
+            value: breakdown.discount === null ? null : -breakdown.discount,
+          },
+        ]
+      : []),
+    ...(hasMakingCharge || hasDiscount
+      ? [
+          {
+            label: hasGst ? "Taxable subtotal" : "Subtotal",
+            detail: "Metal + making − discount",
+            value: breakdown.taxableSubtotal,
+          },
+        ]
+      : []),
+    ...(hasGst
+      ? [
+          {
+            label: "GST",
+            detail: `${safe(quote.gstPercent)}%`,
+            value: breakdown.gst,
+          },
+        ]
+      : []),
     {
-      label: "Making charge",
-      detail: makingDetail,
-      value: breakdown.makingCharge,
-    },
-    {
-      label: "Discount",
-      detail: discountDetail,
-      value: breakdown.discount === null ? null : -breakdown.discount,
-    },
-    {
-      label: "Taxable subtotal",
-      detail: "Metal + making − discount",
-      value: breakdown.taxableSubtotal,
-    },
-    {
-      label: "GST",
-      detail: `${safe(quote.gstPercent)}%`,
-      value: breakdown.gst,
-    },
-    {
-      label: "Price including GST",
+      label: hasGst ? "Price including GST" : "Shop price",
       detail: "Amount payable at shop",
       value: breakdown.shopPayablePrice,
     },
-    {
-      label: "Tourist refund",
-      detail:
-        quote.refundType === "percentage"
-          ? `${safe(quote.refundValue)}% estimate`
-          : "No refund",
-      value: breakdown.refund === null ? null : -breakdown.refund,
-    },
-  ] as const;
+    ...(hasTouristRefund
+      ? [
+          {
+            label: "Tourist refund",
+            detail: `${safe(quote.refundValue)}% estimate`,
+            value: breakdown.refund === null ? null : -breakdown.refund,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <aside className={styles.priceCard}>

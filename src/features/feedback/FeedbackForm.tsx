@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Send } from "lucide-react";
+import { Check, ChevronDown, Send } from "lucide-react";
 import styles from "@/app/info-page.module.css";
 
 const types = [
@@ -19,9 +19,15 @@ const feedbackRecipient = "akashkr2929@gmail.com";
 
 export function FeedbackForm() {
   const [status, setStatus] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+  const [typesOpen, setTypesOpen] = useState(false);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!selectedType) {
+      setStatus("Please choose a feedback type.");
+      return;
+    }
     const form = new FormData(event.currentTarget);
     const feedback = {
       name: String(form.get("name") ?? ""),
@@ -48,17 +54,58 @@ export function FeedbackForm() {
         Email
         <input name="email" type="email" autoComplete="email" required />
       </label>
-      <label className={styles.full}>
-        Feedback type
-        <select name="type" defaultValue="" required>
-          <option value="" disabled>
-            Select a type
-          </option>
-          {types.map((type) => (
-            <option key={type}>{type}</option>
-          ))}
-        </select>
-      </label>
+      <fieldset className={`${styles.full} ${styles.feedbackTypeField}`}>
+        <legend>Feedback type</legend>
+        <div
+          className={styles.feedbackTypePicker}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setTypesOpen(false);
+          }}
+        >
+          <button
+            className={styles.feedbackTypeTrigger}
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={typesOpen}
+            onClick={() => setTypesOpen((open) => !open)}
+          >
+            <span
+              className={`${styles.feedbackTypeValue} ${
+                selectedType ? styles.selectedTypeValue : styles.placeholderText
+              }`}
+            >
+              {selectedType && <Check size={15} />}
+              <span>{selectedType || "Select feedback type"}</span>
+            </span>
+            <ChevronDown size={17} />
+          </button>
+          {typesOpen && (
+            <div
+              className={styles.feedbackTypeMenu}
+              role="listbox"
+              aria-label="Feedback type"
+            >
+              {types.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  role="option"
+                  aria-selected={selectedType === type}
+                  onClick={() => {
+                    setSelectedType(type);
+                    setTypesOpen(false);
+                    setStatus("");
+                  }}
+                >
+                  <span>{type}</span>
+                  {selectedType === type && <Check size={15} />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <input name="type" type="hidden" value={selectedType} />
+      </fieldset>
       <label className={styles.full}>
         Message
         <textarea
