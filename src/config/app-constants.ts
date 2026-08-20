@@ -41,6 +41,34 @@ export const UI_TIMINGS = {
   mailDraftDelayMs: 250,
 } as const;
 
+export const ITEM_IMAGE_CONFIG = {
+  targetBytes: 9 * 1024,
+  warningBytes: 15 * 1024,
+  initialMaxDimension: 640,
+  minimumDimension: 220,
+  initialQuality: 0.72,
+  minimumQuality: 0.24,
+  qualityStep: 0.08,
+  dimensionScale: 0.82,
+  mimeType: "image/webp",
+} as const;
+
+export const SHARE_IMAGE_CONFIG = {
+  logicalWidth: 1080,
+  outputWidth: 720,
+  minimumOutputWidth: 180,
+  maximumLogicalHeight: 12000,
+  maximumBytes: 15 * 1024,
+  resizeScale: 0.84,
+  paletteSizes: [32, 16, 8, 4, 2] as const,
+  mimeType: "image/png",
+} as const;
+
+export const MEDIA_CONFIG = {
+  coffeeImageQuality: 60,
+  coffeeImageSizes: "(max-width: 760px) 100vw, 42vw",
+} as const;
+
 export const JEWELLERY_CATEGORIES = [
   "Necklace",
   "Choker",
@@ -72,7 +100,6 @@ export const PURITY_OPTIONS = [
   "21K (875)",
   "18K (750)",
   "14K (585)",
-  "Custom",
 ] as const;
 
 export const FEEDBACK_TYPES = [
@@ -108,7 +135,7 @@ export const UI_COPY = {
     save: "Save",
     savedSuccessfully: "Saved successfully",
     savedBrowser: "Your price is saved in this browser.",
-    cannotSave: "Cannot save yet",
+    cannotSave: "Please check this",
     validation: {
       item: "Select an item before saving.",
       weight: "Enter the item weight before saving.",
@@ -134,6 +161,7 @@ export const UI_COPY = {
       clearAll: "Clear all data",
       share: "Share",
       shareComparison: "Share comparison",
+      shareImageName: "jwellcheck-price-comparison.png",
       startTitle: "Start your comparison",
       startText: "Add your first shop and jewellery item.",
       addFirstShop: "Add first shop",
@@ -153,12 +181,39 @@ export const UI_COPY = {
       finalPrice: "Final price",
       searchItem: "Search jewellery item",
       noMatchingItem: "No matching item",
+      addPhoto: "Add item photo",
+      takePhoto: "Take photo",
+      choosePhoto: "Choose from device",
+      changePhoto: "Change item photo",
+      removePhoto: "Remove item photo",
+      closePhoto: "Close photo preview",
+    },
+    shareCard: {
+      title: "Jewellery price summary",
+      breakdown: "Price breakdown",
+      comparison: "Saved price comparison",
+      best: "Best",
+      shopFallback: "Shop",
+      itemFallback: "Item",
+      metalValue: "Metal value",
+      makingCharge: "Making charge",
+      discount: "Discount",
+      subtotal: "Subtotal",
+      gst: "GST",
+      shopPrice: "Shop price",
+      touristRefund: "Tourist refund",
     },
     messages: {
-      comparisonCopied: "Comparison copied",
-      sharingUnavailable: "Sharing is unavailable",
+      shareFailed:
+        "Could not create or share the PNG image. Please try again.",
+      imageShareFallback: "Comparison image downloaded and text copied.",
+      nativeShareFallback:
+        "Your device could not open sharing, so the PNG was downloaded instead.",
       clearConfirmation: "Clear every item and shop price? This cannot be undone.",
       minimumItem: "Every shop needs at least one item",
+      imageTooLarge:
+        "This photo is larger than recommended. Remove it if the app feels slow.",
+      imageFailed: "This photo could not be prepared. Please choose another image.",
     },
   },
   feedback: {

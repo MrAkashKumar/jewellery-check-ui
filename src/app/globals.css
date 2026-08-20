@@ -1,5 +1,6 @@
 :root {
   --page: #f7f4ed;
+  --background: var(--page);
   --surface: #fffdf8;
   --surface-soft: #f0ebe1;
   --surface-success: #e5eee2;

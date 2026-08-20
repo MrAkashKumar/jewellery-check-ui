@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useForm, useWatch } from "react-hook-form";
 import {
   AlertCircle,
   BadgeCheck,
   BarChart3,
+  Camera,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -18,18 +19,22 @@ import {
   Share2,
   SlidersHorizontal,
   Trash2,
+  X,
 } from "lucide-react";
 import type { JewelleryItem, Quote } from "@/domain/models";
 import { HeaderLinks } from "@/components/HeaderLinks";
 import {
   APP,
   JEWELLERY_CATEGORIES,
+  ITEM_IMAGE_CONFIG,
   PRICING_DEFAULTS,
   PURITY_OPTIONS,
   UI_COPY,
   UI_TIMINGS,
 } from "@/config/app-constants";
 import { calculateQuote } from "@/domain/pricing/calculator";
+import { compressItemImage } from "./compress-item-image";
+import { createShareImage } from "./create-share-image";
 import { db } from "@/infrastructure/database/jwellcheck-db";
 import {
   addItem,
@@ -135,6 +140,12 @@ export function JwellCheckDashboard() {
   const [showRefundEditor, setShowRefundEditor] = useState(false);
   const [saveConfirmation, setSaveConfirmation] = useState(0);
   const [saveError, setSaveError] = useState("");
+  const [photoPreview, setPhotoPreview] = useState<string>();
+  const [photoMenuOpen, setPhotoMenuOpen] = useState(false);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const photoChooserRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     seedDatabase().then(() => setReady(true));
@@ -157,6 +168,34 @@ export function JwellCheckDashboard() {
     );
     return () => window.clearTimeout(timeout);
   }, [saveError]);
+
+  useEffect(() => {
+    if (!photoMenuOpen) return;
+    function closePhotoMenu(event: PointerEvent) {
+      if (!photoChooserRef.current?.contains(event.target as Node)) {
+        setPhotoMenuOpen(false);
+      }
+    }
+    function closePhotoMenuWithKeyboard(event: KeyboardEvent) {
+      if (event.key === "Escape") setPhotoMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", closePhotoMenu);
+    document.addEventListener("keydown", closePhotoMenuWithKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", closePhotoMenu);
+      document.removeEventListener("keydown", closePhotoMenuWithKeyboard);
+    };
+  }, [photoMenuOpen]);
+
+  useEffect(() => {
+    function updateHeaderSurface() {
+      setHeaderScrolled(window.scrollY > 8);
+    }
+    updateHeaderSurface();
+    window.addEventListener("scroll", updateHeaderSurface, { passive: true });
+    return () => window.removeEventListener("scroll", updateHeaderSurface);
+  }, []);
+
 
   const items = useLiveQuery(
     () =>
@@ -307,7 +346,6 @@ export function JwellCheckDashboard() {
       : null;
 
   const results = useMemo(() => {
-    if (!showComparison) return [];
     const comparisonGroups = new Map<string, JewelleryItem[]>();
     items.forEach((currentItem) => {
       const itemName = (currentItem.category || currentItem.name)
@@ -350,7 +388,7 @@ export function JwellCheckDashboard() {
       });
       return { item: currentItem, ranked };
     });
-  }, [items, quotes, shops, showComparison]);
+  }, [items, quotes, shops]);
 
   const comparableResults = results.filter(({ ranked }) => ranked.length >= 2);
 
@@ -465,6 +503,32 @@ export function JwellCheckDashboard() {
     setSelectedItemId(itemId);
   }
 
+  async function addItemPhoto(file?: File) {
+    if (!file || !item) return;
+    try {
+      const compressed = await compressItemImage(file);
+      await updateItem(item.id, {
+        photoDataUrl: compressed.dataUrl,
+        photoSizeBytes: compressed.sizeBytes,
+      });
+      if (compressed.sizeBytes > ITEM_IMAGE_CONFIG.warningBytes) {
+        setSaveError(UI_COPY.dashboard.messages.imageTooLarge);
+      }
+    } catch {
+      setSaveError(UI_COPY.dashboard.messages.imageFailed);
+    } finally {
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
+      setPhotoMenuOpen(false);
+    }
+  }
+
+  async function removeItemPhoto() {
+    if (!item) return;
+    await updateItem(item.id, { photoDataUrl: undefined, photoSizeBytes: undefined });
+    setPhotoPreview(undefined);
+  }
+
   async function deleteShop(shopId: string) {
     const confirmed = window.confirm(
       `Delete ${shopLabels.get(shopId) || "this shop"} and all of its items?`,
@@ -518,23 +582,81 @@ export function JwellCheckDashboard() {
   }
 
   async function share() {
-    const text = results
+    const comparisonText = results
       .map(({ item: resultItem, ranked }) =>
         ranked[0]
           ? `${resultItem.name || "Item"}: ${shopLabels.get(ranked[0].quote.shopId) || "Shop"} — ${money.format(ranked[0].total.finalCost)}`
           : `${resultItem.name || "Item"}: add another quote`,
       )
       .join("\n");
+    const currentPriceText =
+      item && shop && breakdown
+        ? `${item.name || item.category || "Item"}: ${shop.name || "Shop"} — ${money.format(breakdown.finalCost)}`
+        : UI_COPY.dashboard.subtitle;
+    const text = comparisonText || currentPriceText;
     try {
-      if (navigator.share) await navigator.share({ title: APP.name, text });
-      else {
-        await navigator.clipboard.writeText(text);
-        flash(UI_COPY.dashboard.messages.comparisonCopied);
+      const shareImage = createShareImage({
+        shop: shop?.name || UI_COPY.dashboard.shareCard.shopFallback,
+        item: item?.name || item?.category || UI_COPY.dashboard.shareCard.itemFallback,
+        purity: item?.purity || PRICING_DEFAULTS.purity,
+        weight: `${item?.weightGrams || 0} g`,
+        finalPrice: money.format(breakdown?.finalCost || 0),
+        breakdown: [
+          { label: UI_COPY.dashboard.shareCard.metalValue, value: money.format(breakdown?.metalValue || 0) },
+          { label: UI_COPY.dashboard.shareCard.makingCharge, value: money.format(breakdown?.makingCharge || 0) },
+          { label: UI_COPY.dashboard.shareCard.discount, value: `-${money.format(breakdown?.discount || 0)}` },
+          { label: UI_COPY.dashboard.shareCard.subtotal, value: money.format(breakdown?.taxableSubtotal || 0) },
+          { label: UI_COPY.dashboard.shareCard.gst, value: money.format(breakdown?.gst || 0) },
+          { label: UI_COPY.dashboard.shareCard.shopPrice, value: money.format(breakdown?.shopPayablePrice || 0) },
+          { label: UI_COPY.dashboard.shareCard.touristRefund, value: `-${money.format(breakdown?.refund || 0)}` },
+          { label: UI_COPY.dashboard.labels.finalPrice, value: money.format(breakdown?.finalCost || 0) },
+        ],
+        comparisons: results.map(({ item: resultItem, ranked }) => ({
+          item: resultItem.name || resultItem.category || UI_COPY.dashboard.shareCard.itemFallback,
+          shops: ranked.map((entry, index) => ({
+            shop: shopLabels.get(entry.quote.shopId) || UI_COPY.dashboard.shareCard.shopFallback,
+            price: money.format(entry.total.finalCost),
+            best: index === 0,
+          })),
+        })),
+      });
+      if (
+        navigator.share &&
+        navigator.canShare?.({ files: [shareImage] })
+      ) {
+        try {
+          await navigator.share({ title: APP.name, text, files: [shareImage] });
+          return;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          downloadShareImage(shareImage);
+          flash(UI_COPY.dashboard.messages.nativeShareFallback);
+          return;
+        }
+      } else {
+        downloadShareImage(shareImage);
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          // The PNG download still succeeds when clipboard permission is denied.
+        }
+        flash(UI_COPY.dashboard.messages.imageShareFallback);
       }
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError"))
-        flash(UI_COPY.dashboard.messages.sharingUnavailable);
+        setSaveError(UI_COPY.dashboard.messages.shareFailed);
     }
+  }
+
+  function downloadShareImage(image: File) {
+    const imageUrl = URL.createObjectURL(image);
+    const download = document.createElement("a");
+    download.href = imageUrl;
+    download.download = image.name;
+    document.body.appendChild(download);
+    download.click();
+    download.remove();
+    window.setTimeout(() => URL.revokeObjectURL(imageUrl), UI_TIMINGS.mailDraftDelayMs);
   }
 
   async function clearAllData() {
@@ -564,7 +686,7 @@ export function JwellCheckDashboard() {
   if (!item || !shop) {
     return (
       <div className={styles.app}>
-        <header className={styles.header}>
+        <header className={`${styles.header} ${headerScrolled ? styles.headerScrolled : ""}`}>
           <Brand />
           <div className={styles.headerActions}>
             <HeaderLinks />
@@ -576,8 +698,29 @@ export function JwellCheckDashboard() {
             >
               <Trash2 size={17} /> <span>{UI_COPY.dashboard.labels.clear}</span>
             </button>
+            <button
+              className={styles.ghostButton}
+              type="button"
+              onClick={share}
+              aria-label={UI_COPY.dashboard.labels.shareComparison}
+            >
+              <Share2 size={17} /> <span>{UI_COPY.dashboard.labels.share}</span>
+            </button>
           </div>
         </header>
+        {saveError && (
+          <div
+            className={`${styles.saveToast} ${styles.saveErrorToast}`}
+            role="alert"
+            aria-live="assertive"
+          >
+            <span><AlertCircle size={21} /></span>
+            <div>
+              <strong>{UI_COPY.dashboard.cannotSave}</strong>
+              <small>{saveError}</small>
+            </div>
+          </div>
+        )}
         <main className={styles.emptyStart}>
           <span className={styles.brandMark}>
             <Gem size={25} />
@@ -601,7 +744,7 @@ export function JwellCheckDashboard() {
 
   return (
     <div className={styles.app}>
-      <header className={styles.header}>
+      <header className={`${styles.header} ${headerScrolled ? styles.headerScrolled : ""}`}>
         <Brand />
         <div className={styles.headerActions}>
           <HeaderLinks />
@@ -654,6 +797,21 @@ export function JwellCheckDashboard() {
             <strong>{UI_COPY.dashboard.cannotSave}</strong>
             <small>{saveError}</small>
           </div>
+        </div>
+      )}
+      {photoPreview && (
+        <div className={styles.photoLightbox} role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className={styles.photoLightboxClose}
+            aria-label={UI_COPY.dashboard.labels.closePhoto}
+            onClick={() => setPhotoPreview(undefined)}
+          >
+            <X size={20} />
+          </button>
+          {/* Browser-only user content cannot use the optimized Next Image component. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoPreview} alt="" onClick={() => setPhotoPreview(undefined)} />
         </div>
       )}
 
@@ -898,18 +1056,85 @@ export function JwellCheckDashboard() {
                 </label>
               )}
               <div className={styles.itemGrid}>
-                <label>
+                <label className={styles.itemPhotoField}>
                   Item
-                  <SearchableItemSelect
-                    key={item.id}
-                    value={item.category}
-                    onSelect={(category) =>
-                      updateItem(item.id, {
-                        category,
-                        name: category,
-                      })
-                    }
-                  />
+                  <span className={styles.itemPhotoRow}>
+                    <SearchableItemSelect
+                      key={item.id}
+                      value={item.category}
+                      onSelect={(category) =>
+                        updateItem(item.id, {
+                          category,
+                          name: category,
+                        })
+                      }
+                    />
+                    <input
+                      ref={cameraInputRef}
+                      className={styles.photoInput}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={(event) => addItemPhoto(event.target.files?.[0])}
+                    />
+                    <input
+                      ref={galleryInputRef}
+                      className={styles.photoInput}
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => addItemPhoto(event.target.files?.[0])}
+                    />
+                    {item.photoDataUrl ? (
+                      <span className={styles.photoThumbWrap}>
+                        <button
+                          type="button"
+                          className={styles.photoThumb}
+                          aria-label={UI_COPY.dashboard.labels.changePhoto}
+                          onClick={() => setPhotoPreview(item.photoDataUrl)}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.photoDataUrl} alt="" />
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.photoRemove}
+                          aria-label={UI_COPY.dashboard.labels.removePhoto}
+                          onClick={removeItemPhoto}
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ) : (
+                      <span ref={photoChooserRef} className={styles.photoChooser}>
+                        <button
+                          type="button"
+                          className={styles.photoButton}
+                          aria-label={UI_COPY.dashboard.labels.addPhoto}
+                          title={UI_COPY.dashboard.labels.addPhoto}
+                          aria-expanded={photoMenuOpen}
+                          onClick={() => setPhotoMenuOpen((open) => !open)}
+                        >
+                          <Camera size={19} />
+                        </button>
+                        {photoMenuOpen && (
+                          <span className={styles.photoMenu}>
+                            <button
+                              type="button"
+                              onClick={() => cameraInputRef.current?.click()}
+                            >
+                              <Camera size={16} /> {UI_COPY.dashboard.labels.takePhoto}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => galleryInputRef.current?.click()}
+                            >
+                              {UI_COPY.dashboard.labels.choosePhoto}
+                            </button>
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
                 </label>
                 <label>
                   Purity

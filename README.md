@@ -1,12 +1,14 @@
 # JwellCheck
 
-JwellCheck is a responsive jewellery quotation comparison application for shoppers who want to understand the complete cost of an item before buying it. It compares matching jewellery and precious-metal items across multiple shops and explains how the final price is formed from the metal rate, weight, making charge, discount, GST, additional fees, and an optional estimated tourist refund.
+JwellCheck is a responsive jewellery quotation comparison application for shoppers who want to understand the complete cost of an item before buying it. It compares matching jewellery and precious-metal items across multiple shops and explains how the final price is formed from the metal rate, weight, making charge, discount, GST, and an optional estimated tourist refund.
 
 The application currently stores all comparison data in the user's browser. It does not require an account and does not send quotation data to an application server.
 
 ## Application preview
 
-![JwellCheck jewellery price comparison dashboard](public/readme/jwellcheck-dashboard.jpg)
+![Current JwellCheck jewellery comparison interface](public/readme/jwellcheck-live.png)
+
+This screenshot was captured from the live [JwellCheck application](https://jwellcheck.vercel.app/) and compressed to approximately 34 KB for fast README loading.
 
 > **Important:** JwellCheck is a comparison aid, not a jewellery valuation, authenticity service, tax adviser, or guarantee of refund eligibility. Confirm the final amount and purchase conditions with the retailer.
 
@@ -49,13 +51,15 @@ Keep quotations in the current browser, update prices, add shops or items, and s
 - **Private by default:** comparison data stays in IndexedDB on the current device.
 - **No account required:** users can begin without registration.
 - **Responsive experience:** the interface supports desktop, tablet, mobile, and screens down to 320 px.
-- **Simple sharing:** use the device share menu when supported or copy a summary to the clipboard.
+- **Simple sharing:** generate a compact PNG summary and use the mobile device's native share sheet when supported.
 
 ## Features
 
 - Organise quotations shop by shop and add multiple items to each shop.
 - Search or select jewellery types such as necklace, ring, kangan, jhumka, coin, or gold biscuit.
 - Record purity, weight, rate per gram, making charge, GST, discount, refund, and notes.
+- Optionally capture an item photo with the mobile camera or choose one from the device.
+- Compress item photos before saving them in browser storage.
 - Choose no making charge, a fixed making charge, or a percentage making charge.
 - Choose no discount, a fixed discount, or a percentage discount.
 - Mark **No making charge**, **No GST**, or **No tourist refund** with one action.
@@ -63,24 +67,26 @@ Keep quotations in the current browser, update prices, add shops or items, and s
 - Display a live price breakdown and effective price per gram.
 - Rank complete quotations for matching items by final effective cost.
 - Save automatically to browser storage and explicitly save quote edits.
+- Share a compressed PNG containing the current breakdown and saved comparison results.
 - Clear all locally stored comparison data after confirmation.
 - Provide dedicated Feedback, Reach us, and Buy us a coffee pages.
 
-New forms do not contain sample financial values. Item, weight, shop, rate, making charge, GST, discount, and refund start blank. Purity alone defaults to `22K (916)`.
+New forms do not contain sample quotation data. Item, weight, shop, rate, making charge, discount, and refund start blank. Purity defaults to `22K (916)`, while Singapore GST defaults to `9%` and can be changed or disabled.
 
 ## How to use JwellCheck
 
 1. Select **Add first shop** or **New shop**.
 2. Enter the shop name.
-3. Select the jewellery item, purity, and weight in grams.
+3. Select the jewellery item, purity, and weight in grams. An item photo is optional.
 4. Enter the shop's metal rate per gram.
 5. Select the making-charge method and enter its value when applicable.
-6. Enter GST, or select **No GST** if it does not apply.
-7. Open **More options** to add a discount, tourist refund estimate, or notes.
-8. Review the live price summary and select **Save**.
-9. Add another shop and enter a matching item with its quotation.
-10. Select **Compare prices** to rank complete matching quotations.
-11. Select **Share** to send or copy a concise comparison summary.
+6. Keep **GST 9%**, select **No GST**, or use **Edit GST** for another rate.
+7. Select **No refund**, the standard tourist rate, or edit the estimated refund rate.
+8. Open **Discount & notes** to add an optional discount or note.
+9. Review the live price summary and select **Save**.
+10. Add another shop and enter a matching item with its quotation.
+11. Select **Compare best prices** to rank complete matching quotations.
+12. Select **Share** to open the native mobile share sheet with a PNG summary.
 
 Items are matched for comparison using their item name/category, purity, and weight. Use consistent details across shops when the quotations refer to the same item.
 
@@ -95,7 +101,6 @@ JwellCheck calculates a quotation in a fixed sequence so that every shop is eval
 | `P`    | Metal price or shop rate per gram    | S$/g           |
 | `W`    | Item weight used for the calculation | g              |
 | `M`    | Making-charge value                  | S$, %, or S$/g |
-| `F`    | Total additional fixed fees          | S$             |
 | `D`    | Discount value                       | S$ or %        |
 | `G`    | GST percentage                       | %              |
 | `R`    | Tourist-refund value                 | S$ or %        |
@@ -143,7 +148,7 @@ This equivalent percentage is informational only; it does not add another charge
 The known cost before discounts and GST is:
 
 ```text
-Subtotal Before Discount = Metal Value + Making Charge + Additional Fees
+Subtotal Before Discount = Metal Value + Making Charge
 ```
 
 ### 4. Discount
@@ -206,7 +211,7 @@ This is a shopping-comparison metric. It includes making charges, fees, discount
 
 ### Complete percentage formula
 
-When the making charge and discount are percentages, there are no additional fees, and the refund is also a percentage, the calculation can be written as one formula:
+When the making charge, discount, and refund are percentages, the calculation can be written as one formula:
 
 ```text
 Final Cost = P × W
@@ -216,14 +221,14 @@ Final Cost = P × W
              × (1 − R/100)
 ```
 
-This compact formula is only valid for that particular combination of percentage-based inputs. The step-by-step pricing engine is authoritative for fixed charges, per-gram charges, fixed discounts, additional fees, or fixed refunds.
+This compact formula is only valid for that particular combination of percentage-based inputs. The step-by-step pricing engine is authoritative for fixed charges, per-gram charges, fixed discounts, or fixed refunds.
 
 ### Calculation order summary
 
 ```text
 1. Metal Value             = P × W
 2. Making Charge           = selected making-charge formula
-3. Subtotal Before Discount = Metal Value + Making Charge + F
+3. Subtotal Before Discount = Metal Value + Making Charge
 4. Discount                = selected discount formula
 5. Taxable Subtotal        = max(0, Subtotal Before Discount − Discount)
 6. GST                     = Taxable Subtotal × (G / 100)
@@ -242,7 +247,6 @@ Assume a 10 g item with the following quotation:
 | Rate per gram            | S$100.00 |
 | Weight                   |     10 g |
 | Fixed making charge      | S$150.00 |
-| Additional fees          |   S$0.00 |
 | Discount                 |     None |
 | GST                      |       9% |
 | Estimated tourist refund |     6.5% |
@@ -278,7 +282,8 @@ Effective Price/g  = S$1,172.02 / 10               =   S$117.20/g
 | Forms          | React Hook Form                | Quote form state and efficient input handling                         |
 | Local database | Dexie + IndexedDB              | Structured, browser-only storage and reactive queries                 |
 | Icons          | Lucide React                   | Consistent accessible interface icons                                 |
-| Unit testing   | Vitest                         | Pricing-engine and application logic tests                            |
+| PNG export     | UPNG.js                        | Small indexed-colour PNG comparison images                            |
+| Analytics      | Vercel Analytics               | Lightweight deployment analytics                                     |
 | Testing        | Vitest                         | Fast unit tests for pricing calculations                              |
 | Code quality   | ESLint + Prettier + TypeScript | Linting, formatting, and static type checking                         |
 
@@ -296,7 +301,7 @@ flowchart LR
     D --> F
     DB --> R
     F --> UI
-    UI --> S["Web Share API or clipboard"]
+    UI --> S["PNG generator and Web Share API"]
 ```
 
 ### Layer responsibilities
@@ -326,17 +331,20 @@ jwellcheck/
 │   │   ├── feedback/             Feedback page
 │   │   └── support/              Buy-us-a-coffee page
 │   ├── components/               Shared navigation and page-shell components
+│   ├── config/                   Central application copy, defaults and URLs
 │   ├── domain/
 │   │   ├── models.ts             Business entities and result types
 │   │   └── pricing/              Pure calculator and unit tests
 │   ├── features/
 │   │   ├── comparison/           Main dashboard and responsive styling
+│   │   │                           Item-photo and PNG-share compression helpers
 │   │   ├── contact/              Contact feature
 │   │   ├── feedback/             Feedback form
 │   │   └── support/              Coffee invitation form
 │   ├── infrastructure/
 │   │   ├── database/             Dexie database and schema
 │   │   └── repositories/         Local persistence operations
+│   └── types/                    Third-party TypeScript declarations
 ├── package.json                  Dependencies and project commands
 └── vitest.config.mts             Test configuration
 ```
@@ -483,9 +491,18 @@ npm run check
 
 ## Browser storage
 
-JwellCheck uses an IndexedDB database named `jwellcheck`. Items, shops, quotations, and session metadata remain on the current browser and device.
+JwellCheck uses an IndexedDB database named `jwellcheck`. Items, compressed optional item photos, shops, quotations, and session metadata remain on the current browser and device.
 
 The **Clear** action removes all item, shop, and quotation records after confirmation. This cannot be undone. Clearing browser site data, using private browsing, or opening the application in another browser or device produces a separate empty workspace.
+
+## Performance and image handling
+
+- The homepage and supporting pages are separate Next.js routes, so Coffee, Feedback, and Reach-us page code is not part of the initial dashboard screen.
+- The coffee image loads only on the Coffee page and is delivered as responsive AVIF or WebP when supported.
+- Item photos are resized and compressed before being stored in IndexedDB; the original full-size upload is not retained.
+- Share images use indexed-colour PNG compression and target a maximum of 15 KB. When a large comparison cannot reach that target without excessive quality loss, JwellCheck automatically uses the smallest readable result.
+- The mobile native share sheet displays the applications installed on that device. Unsupported browsers download the PNG instead.
+- Production images use a long cache lifetime to reduce repeat network transfers.
 
 ## Privacy, security, and limitations
 
@@ -506,8 +523,7 @@ The current browser-only architecture is appropriate for a private MVP. Possible
 - Optional accounts and encrypted cross-device synchronization
 - Export and import for backup and recovery
 - Shareable private comparison links
-- Receipt or quotation image attachment
-- PDF and image exports
+- PDF export
 - More detailed stone, certification, and repeatable-fee fields
 - Quote freshness warnings and historical comparisons
 - Country-specific tax and tourist-refund modules

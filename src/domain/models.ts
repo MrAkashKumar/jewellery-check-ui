@@ -23,6 +23,8 @@ export interface JewelleryItem {
   purity: string;
   weightGrams: number;
   comparisonGroup: string;
+  photoDataUrl?: string;
+  photoSizeBytes?: number;
   notes?: string;
   createdAt: string;
   updatedAt: string;
