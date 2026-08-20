@@ -1085,6 +1085,9 @@
     border-radius: 14px;
     font-size: 1rem;
   }
+  .itemGrid .searchSelect > input {
+    padding-left: 44px;
+  }
 }
 
 @media (max-width: 680px) {

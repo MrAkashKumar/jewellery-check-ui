@@ -212,7 +212,8 @@ export function JwellCheckDashboard() {
         quote.refundValue === 0
           ? Number.NaN
           : quote.refundValue,
-      refundNotApplicable: quote.refundNotApplicable ?? false,
+      refundNotApplicable:
+        quote.refundValue > 0 ? (quote.refundNotApplicable ?? false) : true,
       notes: quote.notes ?? "",
     });
   }, [quote, reset, shop]);
@@ -853,31 +854,46 @@ export function JwellCheckDashboard() {
                           onClick={() => {
                             const next = !watched.gstNotApplicable;
                             setValue("gstNotApplicable", next);
-                            if (next)
+                            if (next) {
                               setValue(
                                 "gstPercent",
                                 undefined as unknown as number,
                               );
+                            } else {
+                              setValue("gstPercent", 9);
+                            }
                           }}
                         >
                           {watched.gstNotApplicable && <Check size={14} />}
-                          No GST
+                          {watched.gstNotApplicable
+                            ? "No GST charged"
+                            : `GST · ${Number.isFinite(watched.gstPercent) ? watched.gstPercent : 9}%`}
                         </button>
                         <button
                           type="button"
-                          aria-pressed={Boolean(watched.refundNotApplicable)}
+                          aria-pressed={!watched.refundNotApplicable}
                           onClick={() => {
-                            const next = !watched.refundNotApplicable;
-                            setValue("refundNotApplicable", next);
-                            if (next)
+                            const enableTouristRefund = Boolean(
+                              watched.refundNotApplicable,
+                            );
+                            setValue(
+                              "refundNotApplicable",
+                              !enableTouristRefund,
+                            );
+                            if (enableTouristRefund) {
+                              setValue("refundValue", 7);
+                            } else {
                               setValue(
                                 "refundValue",
                                 undefined as unknown as number,
                               );
+                            }
                           }}
                         >
-                          {watched.refundNotApplicable && <Check size={14} />}
-                          No tourist refund
+                          {!watched.refundNotApplicable && <Check size={14} />}
+                          {watched.refundNotApplicable
+                            ? "Tourist buyer?"
+                            : `Tourist · ${effectiveRefundValue}% refund`}
                         </button>
                       </div>
                       <div className={styles.formGrid}>
@@ -988,13 +1004,13 @@ export function JwellCheckDashboard() {
                         )}
                         {!watched.refundNotApplicable && (
                           <label>
-                            Tourist refund (%)
+                            Estimated tourist refund (%)
                             <input
                               type="number"
                               min="0"
                               max="100"
                               step="0.01"
-                              placeholder="Optional"
+                              placeholder="7"
                               {...register("refundValue", {
                                 valueAsNumber: true,
                               })}

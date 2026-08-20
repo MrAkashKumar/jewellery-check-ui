@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   Lightbulb,
+  Mail,
   MapPin,
   MessageCircle,
   Phone,
@@ -15,6 +16,7 @@ import styles from "@/app/info-page.module.css";
 
 export function ContactCard() {
   const [showPhone, setShowPhone] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
 
   return (
     <section className={`${styles.card} ${styles.contactCard}`}>
@@ -36,6 +38,33 @@ export function ContactCard() {
             <small>Location</small>
             <strong>Singapore</strong>
           </p>
+        </div>
+        <div>
+          <span className={styles.detailIcon}>
+            <Mail size={18} />
+          </span>
+          <p>
+            <small>Email</small>
+            <strong>
+              {showEmail ? (
+                <a href="mailto:akashkr2929@gmail.com">
+                  akashkr2929@gmail.com
+                </a>
+              ) : (
+                "a••••••••@gmail.com"
+              )}
+            </strong>
+          </p>
+          <button
+            className={styles.visibilityButton}
+            type="button"
+            aria-label={`${showEmail ? "Hide" : "Show"} email address`}
+            aria-pressed={showEmail}
+            onClick={() => setShowEmail((visible) => !visible)}
+          >
+            {showEmail ? <EyeOff size={16} /> : <Eye size={16} />}
+            {showEmail ? "Hide" : "Show"}
+          </button>
         </div>
         <div>
           <span className={styles.detailIcon}>
